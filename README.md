@@ -41,6 +41,7 @@ Only tested on windows so far with the following setup:
 
 - Clang compiler for Windows (https://github.com/llvm/llvm-project)
 - Visual Studio 2019 (https://visualstudio.microsoft.com/downloads/)
+- Raylib (https://github.com/raysan5/raylib)
 
 # Status
 

@@ -238,6 +238,11 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 	double		 r	= radius;
 	plot_point_t co = calc_circ_center(start, end, r);
 
+	plot_point_t rco = calc_reflect_p3(start, end, co);
+	if(! isnan(rco.x) && ! isnan(rco.y)) {
+		co = rco;
+	}
+
 	double o1 = start.y > co.y ? start.y - co.y : co.y - start.y;
 	double o2 = end.y > co.y ? end.y - co.y : co.y - end.y;
 
@@ -245,8 +250,15 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 	// o1 = o1 < 0 ? -o1 : o1;
 	// o2 = o2 < 0 ? -o2 : o2;
 
+	// FIXME reflecting co breaks quadrant calculations. Fix this please.
 	double a1 = calc_quadrant(asin(o1 / r), start.x - co.x, start.y - co.y);
 	double a2 = calc_quadrant(asin(o2 / r), end.x - co.x, end.y - co.y);
+
+	// // TODO add optional flip toggle.
+
+	// // flip the arc by 180 degrees
+	// a1 += M_PI;
+	// a2 += M_PI;
 
 	// make angle 1 and 2 unsigned to make maths work.
 	if(a1 < 0) {
@@ -319,6 +331,38 @@ plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2) {
 	return (plot_point_t){x, y};
 }
 
+plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2,
+							 plot_point_t p3) {
+	// m = rise / run or y / x.
+	// subtract the two points to normalize the slope.
+	double m1 = (p2.y - p1.y) / (p2.x - p1.x);
+
+	if(isnan(m1)) {
+		return (plot_point_t){p2.x - p3.x + p2.x, p3.y};
+	}
+
+	// b = y - mx
+	double b1 = p2.y - m1 * p2.x;
+
+	// to reflect, we just need the opposite line to the one we have.
+	double m2 = -m1;
+	double b2 = p3.y - m2 * p3.x;
+
+	if(m1 == 0) {
+		return (plot_point_t){p3.x, b1 - b2 + b1};
+	}
+
+	// get the intersection point between the two lines.
+	double ix = (b2 - b1) / (m1 - m2);
+	double iy = m1 * ix + b1;
+
+	// get the reflected point by using the intersection point.
+	double rx = ix - p3.x + ix;
+	double ry = m2 * rx + b2;
+
+	return (plot_point_t){rx, ry};
+}
+
 double calc_dist(plot_point_t p1, plot_point_t p2) {
 	return sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 }
@@ -337,8 +381,7 @@ plot_point_t calc_circ_center(plot_point_t p1, plot_point_t p2, double r) {
 	if(dist / 2 >= r) {
 		// if dist is greater than or equal to the radius, just return the
 		// center of the two points as the circle origin.
-		return (plot_point_t){p3.x,
-							  p3.y};
+		return (plot_point_t){p3.x, p3.y};
 	}
 
 	// to be honest, I don't entierly get it but hey, what works works so no
@@ -375,7 +418,7 @@ double calc_quadrant(double angle, double x, double y) {
 		angle = 2 * M_PI - angle;
 	}
 	else { // x and y are at zero and I'm not really sure what that means.
-           angle = 0;
+		angle = 0;
 	}
 
 	return angle;

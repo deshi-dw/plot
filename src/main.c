@@ -105,9 +105,6 @@ int main(void) {
 			}
 
 			for(int j = 0; j < plot->paths[i].point_count; j += 3) {
-				// plot->paths[i].points[j].x = 173;
-				// plot->paths[i].points[j].y = 197;
-
 				plot_point_t start = plot->paths[i].points[j];
 				plot_point_t mid   = plot->paths[i].points[j + 1];
 				plot_point_t end   = plot->paths[i].points[j + 2];
@@ -120,9 +117,11 @@ int main(void) {
 				double			 real_radius = 0.0;
 				plot_path_part_t part;
 
+				// do initial part calculation with baseline radius.
 				part		= calc_path_part(start, mid, end, r);
 				real_radius = calc_circ_radius(start, end, part.mid);
 
+				// calculate part again but this time with a "real radius".
 				if(real_radius != NAN && real_radius != INFINITY) {
 					// roud real radius to get rid of small rounding errors that
 					// mess up calc_circ_center.
@@ -142,9 +141,7 @@ int main(void) {
 					part		= calc_path_part(start, mid, end, real_radius);
 				}
 
-				// TODO think about doing this before the real radius calc. This
-				// will update the middle point so it can be more dynamically
-				// updated.
+                // recalculate middle point if it goes out of bounds.
 				if(calc_dist(part.mid, real_middle) > r) {
 					part.mid.x =
 						real_middle.x +
@@ -152,27 +149,10 @@ int main(void) {
 					part.mid.y =
 						real_middle.y +
 						sin(part.start_angle - part.delta_angle / 2) * r;
-
-					// printf("fixed: (%f, %f)\n", part.mid.x, part.mid.y);
 				}
-				plot_point_t test = {0};
-				test.x			  = real_middle.x +
-						 cos(part.start_angle - part.delta_angle / 2) * r;
-				test.y = real_middle.y +
-						 sin(part.start_angle - part.delta_angle / 2) * r;
 
-				DrawLine(plot_x(real_middle.x), plot_y(real_middle.y),
-						 plot_x(test.x), plot_y(test.y), PURPLE);
-				DrawCircle(plot_x(test.x), plot_y(test.y), 3.0f, PURPLE);
-
-				plot->paths[i].points[j + 1] = part.mid;
+                plot->paths[i].points[j + 1] = part.mid;
 				DrawCircle(plot_x(part.mid.x), plot_y(part.mid.y), 3.0f, RED);
-
-				char midText[256];
-				sprintf(midText,
-						"mid = (%.1f, %.1f)    r = %f, real radius = %f",
-						part.mid.x, part.mid.y, r, real_radius);
-				DrawText(midText, 10, 10, 11, BLACK);
 
 				int detail = 10;
 
