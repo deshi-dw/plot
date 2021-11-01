@@ -9,6 +9,7 @@
 #include "raylib.h"
 
 #include "plot.h"
+#include "ui.h"
 
 struct {
 	int sel;
@@ -37,6 +38,22 @@ int main(void) {
 
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
 	Vector2	 mouse = {0};
+
+	ui_init();
+
+	ui_btn_t btn_file = {0};
+	btn_file.rect.x = 0;
+	btn_file.rect.y = 0;
+	btn_file.rect.width = 30;
+	btn_file.rect.height = 12;
+	btn_file.text = "file";
+
+	ui_btn_t btn_edit = {0};
+	btn_edit.rect.x = 30;
+	btn_edit.rect.y = 0;
+	btn_edit.rect.width = 30;
+	btn_edit.rect.height = 12;
+	btn_edit.text = "edit";
 
 	int is_flipped = 0;
 
@@ -81,8 +98,15 @@ int main(void) {
 			plot_point_set(cursor.sel, plot_x(mouse.x), plot_y(mouse.y));
 		}
 
+		ui_tick();
+		ui_btn_tick(&btn_file);
+		ui_btn_tick(&btn_edit);
+
 		BeginDrawing();
 		ClearBackground(WHITE);
+
+		ui_btn_draw(&btn_file);
+		ui_btn_draw(&btn_edit);
 
 		BeginMode2D(cam);
 
