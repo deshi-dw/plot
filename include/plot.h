@@ -1,6 +1,9 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#define TO_DEG (180 / M_PI)
+#define TO_RAD (M_PI / 180)
+
 typedef struct plot_point_t		plot_point_t;
 typedef struct plot_path_t		plot_path_t;
 typedef struct plot_path_part_t plot_path_part_t;

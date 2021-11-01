@@ -241,9 +241,6 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 	double		 r	= radius;
 	plot_point_t co = calc_circ_center(start, end, r);
 
-	// TODO this causes spasm if the middle is not properly project so try to
-	// find a way to project mid onto the middle line before flipping thanks.
-
 	// reflect the circle depending on the middle point.
 	// n = normal,  f = flipped
 	// p1 = start, p2 = end
@@ -327,7 +324,11 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 										  sin(a1 - da / 2) * r + co.y},
 						   mid);
 
-	// TODO restrict point mid to the radius of the circle at max.
+	// restrict the mid point to inside the circle.
+	if(calc_dist(proj, co) > r) {
+		proj.x = cos(a1 - da / 2) * r + co.x;
+		proj.y = sin(a1 - da / 2) * r + co.y;
+	}
 
 	part.mid.x = round(proj.x * 1000000) / 1000000;
 	part.mid.y = round(proj.y * 1000000) / 1000000;

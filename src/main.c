@@ -23,8 +23,6 @@ int main(void) {
 	InitWindow(screenWidth, screenHeight, "plot");
 	SetTargetFPS(30);
 
-	// x / (x / 10)
-
 	plot_t* plot = plot_new(800, 450);
 	plot_path_add("new_path_1");
 	plot_path_sel("new_path_1");
@@ -32,9 +30,10 @@ int main(void) {
 	plot_point_add(100, 50);
 	plot_point_add(400, 150);
 	plot_point_add(700, 50);
-	// plot_point_add(300, 125);
-	// plot_point_add(720, 420);
-	// plot_point_add(630, 220);
+	plot_point_add(300, 125);
+	plot_point_add(720, 420);
+	plot_point_add(630, 220);
+	plot_point_add(630, 420);
 
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
 	Vector2	 mouse = {0};
@@ -110,31 +109,17 @@ int main(void) {
 				continue;
 			}
 
-			for(int j = 0; j < plot->paths[i].point_count; j += 3) {
+			// TODO support more than three points.
+			for(int j = 0; j < plot->paths[i].point_count; j += 2) {
+				if(j + 3 > plot->paths[i].point_count) {
+					break;
+				}
+
 				plot_point_t start = plot->paths[i].points[j];
 				plot_point_t mid   = plot->paths[i].points[j + 1];
 				plot_point_t end   = plot->paths[i].points[j + 2];
 
-				/*plot_point_t p4 = calc_point_project(start, end, mid);
-
-				DrawCircle(plot_x(start.x), plot_y(start.y), 3.0f, BLACK);
-				DrawCircle(plot_x(end.x), plot_y(end.y), 3.0f, BLACK);
-				DrawCircle(plot_x(mid.x), plot_y(mid.y), 3.0f, BLACK);
-
-				DrawCircle(plot_x(p4.x), plot_y(p4.y), 3.0f, RED);
-
-				DrawLine(plot_x(start.x), plot_y(start.y), plot_x(end.x),
-				plot_y(end.y), BLACK);
-
-				continue;*/
-
 				double r = calc_dist(start, end) / 2;
-
-				plot_point_t real_middle = (plot_point_t){
-					(start.x + end.x) / 2, (start.y + end.y) / 2};
-
-				DrawCircle(plot_x(real_middle.x), plot_y(real_middle.y), 3.0f,
-						   BLUE);
 
 				double			 real_radius = 0.0;
 				plot_path_part_t part;
@@ -151,8 +136,8 @@ int main(void) {
 					// calc_circ_center uses the square root of radius^2 -
 					// calc_dist(start, end)^2 amoung some other calculations to
 					// figure out the origin. if the radius isn't greater than
-					// the calc_dist, we get a NAN output which breaks
-					// everything.
+					// or equal to the calc_dist, we get a NAN output which
+					// breaks everything.
 
 					// for example my radius was 299.99999999999994 when it was
 					// supposed to be 300 and that was enough to break it. 1
@@ -164,52 +149,7 @@ int main(void) {
 					part = calc_path_part(start, part.mid, end, real_radius);
 				}
 
-				DrawLine(plot_x(part.origin.x), plot_y(part.origin.y),
-						 plot_x(cos(part.start_angle - part.delta_angle / 2) *
-									part.radius +
-								part.origin.x),
-						 plot_y(sin(part.start_angle - part.delta_angle / 2) *
-									part.radius +
-								part.origin.y),
-						 PINK);
-
-				char text[256];
-#define TO_DEG (180 / M_PI)
-
-				double Mx = mid.x - real_middle.x;
-				double My = mid.y - real_middle.y;
-
-				sprintf(text,
-						"start=%.2f, end=%.2f, delta=%.2f  flipped=%d, flip "
-						"dist=%.2f",
-						part.start_angle * TO_DEG, part.end_angle * TO_DEG,
-						part.delta_angle * TO_DEG, is_flipped,
-						mid.x * Mx + mid.y * My);
-				DrawText(text, 10, 10, 16, BLACK);
-
-				sprintf(text, "mid=(%.2f, %.2f)  real_mid=(%.2f, %.2f)", mid.x,
-						mid.y, real_middle.x, real_middle.y);
-				DrawText(text, 10, 24, 16, BLACK);
-
-				sprintf(text, "start=(%.2f, %.2f)  end=(%.2f, %.2f)", start.x,
-						start.y, end.x, end.y);
-				DrawText(text, 10, 38, 16, BLACK);
-
-				DrawCircle(plot_x(part.mid.x), plot_y(part.mid.y), 3.0f, RED);
 				plot->paths[i].points[j + 1] = part.mid;
-
-				DrawLine(plot_x(part.origin.x - part.radius),
-						 plot_y(part.origin.y),
-						 plot_x(part.origin.x + part.radius),
-						 plot_y(part.origin.y), RED);
-
-				DrawLine(plot_x(part.origin.x),
-						 plot_y(part.origin.y - part.radius),
-						 plot_x(part.origin.x),
-						 plot_y(part.origin.y + part.radius), RED);
-
-				DrawCircleLines(plot_x(part.origin.x), plot_y(part.origin.y),
-								part.radius, RED);
 
 				int detail = 10;
 
