@@ -234,43 +234,79 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 								plot_point_t end, double radius) {
 	plot_path_part_t part = {0};
 
+	plot_point_t real_middle =
+		(plot_point_t){(start.x + end.x) / 2, (start.y + end.y) / 2};
+
 	// double		 r	= calc_dist(start, end) / 2;
 	double		 r	= radius;
 	plot_point_t co = calc_circ_center(start, end, r);
 
-	plot_point_t rco = calc_reflect_p3(start, end, co);
-	if(! isnan(rco.x) && ! isnan(rco.y)) {
-		co = rco;
+	// TODO this causes spasm if the middle is not properly project so try to
+	// find a way to project mid onto the middle line before flipping thanks.
+
+	// reflect the circle depending on the middle point.
+	// n = normal,  f = flipped
+	// p1 = start, p2 = end
+	/* p1 \                     /  p2       p2 \                     / p1
+	 *     \                   /                \                   /
+	 *   n  \  f           f  /  n            f  \  n           n  /  f
+	 *       \               /                    \               /
+	 *        \ p2       p1 /                      \ p1       p2 /
+	 */
+
+	// get the line of start and end point using the y = mx + b forumula and
+	// then figure out which side the mid point is on.
+
+	//     p2.y - p1.y
+	// m = -----------    slope
+	//     p2.x - p1.x
+	double m = (end.y - start.y) / (end.x / start.x);
+
+	// b = y - mx
+	double b = real_middle.y - m * real_middle.x;
+
+	// mx + b - y > 0
+	double side = m * mid.x + b - mid.y;
+
+	int flip = 0;
+	if(side < 0) {
+		flip = 1;
 	}
 
-	double o1 = start.y > co.y ? start.y - co.y : co.y - start.y;
-	double o2 = end.y > co.y ? end.y - co.y : co.y - end.y;
+	// reflect the circle origin. Do this when flipping the sides.
+	if(flip) {
+		plot_point_t rco = calc_reflect_p3(start, end, co);
+		if(! isnan(rco.x) && ! isnan(rco.y)) {
+			co = rco;
+		}
+	}
 
-	// make opposite 1 and 2 absolute. Don't think this is nessasery.
-	// o1 = o1 < 0 ? -o1 : o1;
-	// o2 = o2 < 0 ? -o2 : o2;
+	// double o1 = start.y > co.y ? start.y - co.y : co.y - start.y;
+	// double o2 = end.y > co.y ? end.y - co.y : co.y - end.y;
 
-	// FIXME reflecting co breaks quadrant calculations. Fix this please.
+	double o1 = co.y - start.y;
+	double o2 = co.y - end.y;
+
+	// make opposite 1 and 2 absolute. This is to make the below calculation
+	// always work.
+	o1 = o1 < 0 ? -o1 : o1;
+	o2 = o2 < 0 ? -o2 : o2;
+
+	// make it so that o1 and o2 are never greater than the radius or the asin
+	// function will return NAN.
+	o1 = o1 > r ? r : o1;
+	o2 = o2 > r ? r : o2;
+
 	double a1 = calc_quadrant(asin(o1 / r), start.x - co.x, start.y - co.y);
 	double a2 = calc_quadrant(asin(o2 / r), end.x - co.x, end.y - co.y);
 
-	// // TODO add optional flip toggle.
-
-	// // flip the arc by 180 degrees
-	// a1 += M_PI;
-	// a2 += M_PI;
-
 	// make angle 1 and 2 unsigned to make maths work.
-	if(a1 < 0) {
-		a1 += 2 * M_PI;
-	}
-	if(a2 < 0) {
-		a2 += 2 * M_PI;
-	}
+	a1 = a1 < 0 ? a1 + 2 * M_PI : a1;
+	a2 = a2 < 0 ? a2 + 2 * M_PI : a2;
 
 	// delta angle
-	double da = a1 - a2;
-	da		  = fmod(da + M_PI, 2 * M_PI) - M_PI;
+	// gets the signed distance between angle 1 and angle 2.
+	double da = atan2(sin(a1 - a2), cos(a1 - a2));
 
 	part.start_angle = a1;
 	part.end_angle	 = a2;
@@ -282,85 +318,52 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 
 	part.start = start;
 	part.end   = end;
-	part.mid   = mid;
 
 	// get a projection of the mid point onto the line between the start and end
 	// points.
-	plot_point_t proj = calc_point_project(
-		(plot_point_t){cos(a1 - da / 2) * r, sin(a1 - da / 2) * r},
-		(plot_point_t){mid.x - co.x, mid.y - co.y});
+	plot_point_t proj =
+		calc_point_project(co,
+						   (plot_point_t){cos(a1 - da / 2) * r + co.x,
+										  sin(a1 - da / 2) * r + co.y},
+						   mid);
 
-	if(isnan(proj.x) | isnan(proj.y)) {
-		puts("projected error");
-		printf("a1 point=(%f, %f), a2 point(%f, %f)\n", start.x - co.x,
-			   start.y - co.y, end.x - co.x, end.y - co.y);
-		printf("o1=%f, o2=%f\n", o1, o2);
-		printf("r=%f, dist=%f co.x=%f, co.y=%f\n", r, calc_dist(start, end) / 2,
-			   co.x, co.y);
-		printf("a1=%f, a2=%f, ad=%f\n", a1, a2, da);
-		printf("p1=(%f, %f)\n", cos(a1 - da / 2) * r, sin(a1 - da / 2) * r);
-		exit(0);
-	}
+	// TODO restrict point mid to the radius of the circle at max.
 
-	part.mid.x = proj.x + co.x;
-	part.mid.y = proj.y + co.y;
+	part.mid.x = round(proj.x * 1000000) / 1000000;
+	part.mid.y = round(proj.y * 1000000) / 1000000;
 
 	return part;
 }
 
-plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2) {
-	// y = mx + b  (aka the equation for a line)
-	double m_1 = p1.y / p1.x;
-	// m_2 must be the opposite of m_1 because we want to intersect the halfway
-	// line.
-	double a   = atan(p1.y / p1.x) + M_PI_2;
-	double d   = sqrt(p1.x * p1.x + p1.y * p1.y);
-	double m_2 = (sin(a) * d) / (cos(a) * d);
+plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2,
+								plot_point_t p3) {
+	// get A vector
+	double Ax = p3.x - p1.x;
+	double Ay = p3.y - p1.y;
 
-	// this is just the reverse of y = mx + b which is b = y - mx ... I think?
-	double b = p2.y - (m_2 * p2.x);
+	// get B vector
+	double Bx = p2.x - p1.x;
+	double By = p2.y - p1.y;
 
-	// with the system of equations y = m_1 * x, y = m_2 * x + b, to get x we
-	// can use the equation x = b / (m_1 - m_2)
+	// normalize B vector
+	double Bmag = sqrt(Bx * Bx + By * By);
+	Bx			= Bx / Bmag;
+	By			= By / Bmag;
 
-	// to get y we can use y = m_1 * x or y = m_2 * x + b. (either one works)
+	// get the dot product of the A and B vector.
+	double s = Ax * Bx + Ay * By;
 
-	double x = b / (m_1 - m_2);
-	double y = m_1 * x;
-
-	return (plot_point_t){x, y};
+	// convert vectors back into a point.
+	return (plot_point_t){Bx * s + p1.x, By * s + p1.y};
 }
 
 plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2,
 							 plot_point_t p3) {
-	// m = rise / run or y / x.
-	// subtract the two points to normalize the slope.
-	double m1 = (p2.y - p1.y) / (p2.x - p1.x);
+	// get the point projected onto a line (intersect point)
+	plot_point_t i = calc_point_project(p1, p2, p3);
 
-	if(isnan(m1)) {
-		return (plot_point_t){p2.x - p3.x + p2.x, p3.y};
-	}
-
-	// b = y - mx
-	double b1 = p2.y - m1 * p2.x;
-
-	// to reflect, we just need the opposite line to the one we have.
-	double m2 = -m1;
-	double b2 = p3.y - m2 * p3.x;
-
-	if(m1 == 0) {
-		return (plot_point_t){p3.x, b1 - b2 + b1};
-	}
-
-	// get the intersection point between the two lines.
-	double ix = (b2 - b1) / (m1 - m2);
-	double iy = m1 * ix + b1;
-
-	// get the reflected point by using the intersection point.
-	double rx = ix - p3.x + ix;
-	double ry = m2 * rx + b2;
-
-	return (plot_point_t){rx, ry};
+	// get the reflection of p3 along the line using the intersection point.
+	return (plot_point_t){i.x - p3.x + i.x, i.y - p3.y + i.y};
 }
 
 double calc_dist(plot_point_t p1, plot_point_t p2) {

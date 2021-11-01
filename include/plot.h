@@ -92,7 +92,8 @@ double		 plot_y(double y);
 plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 								plot_point_t end, double radius);
 
-plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2);
+plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2,
+								plot_point_t p3);
 plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2, plot_point_t p3);
 
 /**
