@@ -13,7 +13,7 @@
 
 struct {
 	int sel;
-	int is_sel;
+	int is_moving;
 } cursor = {0};
 
 int main(void) {
@@ -31,10 +31,10 @@ int main(void) {
 	plot_point_add(100, 50);
 	plot_point_add(400, 150);
 	plot_point_add(700, 50);
-	plot_point_add(300, 125);
-	plot_point_add(720, 420);
-	plot_point_add(630, 220);
-	plot_point_add(630, 420);
+	// plot_point_add(300, 125);
+	// plot_point_add(720, 420);
+	// plot_point_add(630, 220);
+	// plot_point_add(630, 420);
 
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
 	Vector2	 mouse = {0};
@@ -83,19 +83,32 @@ int main(void) {
 			cursor.sel =
 				plot_point_get_index(plot_x(mouse.x), plot_y(mouse.y), 4.0);
 			if(cursor.sel >= 0) {
-				cursor.is_sel = 1;
+				cursor.is_moving = 1;
 			}
 			else {
-				cursor.is_sel = 0;
+				cursor.is_moving = 0;
 			}
 		}
 		else if(IsMouseButtonReleased(0)) {
-			cursor.sel	  = -1;
-			cursor.is_sel = 0;
+			cursor.is_moving = 0;
 		}
 
-		if(cursor.is_sel) {
+		if(cursor.is_moving) {
 			plot_point_set(cursor.sel, plot_x(mouse.x), plot_y(mouse.y));
+		}
+
+		if(IsMouseButtonReleased(1)) {
+			double mx = plot_x(mouse.x);
+			double my = plot_y(mouse.y);
+			plot_point_t prev = plot->paths[plot->sel].points[plot->paths[plot->sel].point_count - 1];
+			plot_point_add((prev.x + mx) / 2 + 1, (prev.y + my) / 2);
+			plot_point_add(mx, my);
+		}
+
+		if(IsKeyDown(KEY_DELETE)) {
+			if(cursor.sel != -1 && cursor.sel < plot->paths[plot->sel].point_count) {
+				plot_point_del(cursor.sel);
+			}
 		}
 
 		ui_tick();

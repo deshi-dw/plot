@@ -4,6 +4,7 @@
 #include <corecrt_math.h>
 #include <corecrt_memcpy_s.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <corecrt_math_defines.h>
@@ -45,10 +46,9 @@ int plot_path_add(char* name) {
 		plot.path_hashes[i] = hash(name);
 		memset(&plot.paths[i], 0, sizeof(plot.paths[i]));
 
-		plot.paths[i].size = 4;
-		plot.paths[i].points =
-			malloc(sizeof(plot_point_t) * plot.paths[i].size);
-		plot.paths[i].radii = malloc(sizeof(plot_point_t) * plot.paths[i].size);
+		plot.paths[i].size	 = 4;
+		plot.paths[i].points = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
+		plot.paths[i].radii	 = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
 
 		return 0;
 	}
@@ -113,15 +113,15 @@ int plot_point_add(double x, double y) {
 		// resize point buffer to fit more points.
 		plot.paths[plot.sel].points =
 			plot_buffer_resize(plot.paths[plot.sel].points,
-							   plot.paths[plot.sel].size * sizeof(plot_point_t),
-							   new_size * sizeof(plot_point_t));
+							   plot.paths[plot.sel].size * sizeof(plot_vec2_t),
+							   new_size * sizeof(plot_vec2_t));
 
 		// now do the same but for the radii. note that radii has half the size
 		// because there is only 1 radii point for every two points.
 		plot.paths[plot.sel].radii =
 			plot_buffer_resize(plot.paths[plot.sel].radii,
-							   plot.paths[plot.sel].size * sizeof(plot_point_t),
-							   new_size * sizeof(plot_point_t) / 2);
+							   plot.paths[plot.sel].size * sizeof(plot_vec2_t),
+							   new_size * sizeof(plot_vec2_t) / 2);
 
 		plot.paths[plot.sel].size = new_size;
 	}
@@ -146,13 +146,21 @@ int plot_point_add(double x, double y) {
 	return 0;
 }
 
+// FIXME deleting admittedly works better than I thought it would but it's still
+// broke. Adding new points after delteting points is odd.
 int plot_point_del(int index) {
-	return -1;
+	memcpy(plot.paths[plot.sel].points + index - 1,
+		   plot.paths[plot.sel].points + index,
+		   plot.paths[plot.sel].point_count - index);
+
+	plot.paths[plot.sel].point_count--;
+
+	return 0;
 }
 
 int plot_point_get_index(double x, double y, double radius) {
 	for(int i = 0; i < plot.paths[plot.sel].point_count; i++) {
-		if(calc_dist(plot.paths[plot.sel].points[i], (plot_point_t){x, y}) <=
+		if(calc_dist(plot.paths[plot.sel].points[i], (plot_vec2_t){x, y}) <=
 		   radius) {
 			return i;
 		}
@@ -214,12 +222,12 @@ double plot_left() {
 	return plot.origin.x;
 }
 
-plot_point_t plot_origin() {
+plot_vec2_t plot_origin() {
 	return plot.origin;
 }
 
-plot_point_t plot_coord(double x, double y) {
-	return (plot_point_t){plot_left() + x, plot_bottom() + y};
+plot_vec2_t plot_coord(double x, double y) {
+	return (plot_vec2_t){plot_left() + x, plot_bottom() + y};
 }
 
 double plot_x(double x) {
@@ -230,16 +238,19 @@ double plot_y(double y) {
 	return plot_top() - (plot_bottom() + y);
 }
 
-plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
-								plot_point_t end, double radius) {
+// TODO deal with cases where things are zero. Or more accuratly, figure out all
+// the restrictions with the formulas I used.
+
+plot_path_part_t calc_path_part(plot_vec2_t start, plot_vec2_t mid,
+								plot_vec2_t end, double radius) {
 	plot_path_part_t part = {0};
 
-	plot_point_t real_middle =
-		(plot_point_t){(start.x + end.x) / 2, (start.y + end.y) / 2};
+	plot_vec2_t real_middle =
+		(plot_vec2_t){(start.x + end.x) / 2, (start.y + end.y) / 2};
 
 	// double		 r	= calc_dist(start, end) / 2;
-	double		 r	= radius;
-	plot_point_t co = calc_circ_center(start, end, r);
+	double		r  = radius;
+	plot_vec2_t co = calc_circ_center(start, end, r);
 
 	// reflect the circle depending on the middle point.
 	// n = normal,  f = flipped
@@ -272,7 +283,7 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 
 	// reflect the circle origin. Do this when flipping the sides.
 	if(flip) {
-		plot_point_t rco = calc_reflect_p3(start, end, co);
+		plot_vec2_t rco = calc_reflect_p3(start, end, co);
 		if(! isnan(rco.x) && ! isnan(rco.y)) {
 			co = rco;
 		}
@@ -318,11 +329,10 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 
 	// get a projection of the mid point onto the line between the start and end
 	// points.
-	plot_point_t proj =
-		calc_point_project(co,
-						   (plot_point_t){cos(a1 - da / 2) * r + co.x,
-										  sin(a1 - da / 2) * r + co.y},
-						   mid);
+	plot_vec2_t proj = calc_point_project(
+		co,
+		(plot_vec2_t){cos(a1 - da / 2) * r + co.x, sin(a1 - da / 2) * r + co.y},
+		mid);
 
 	// restrict the mid point to inside the circle.
 	if(calc_dist(proj, co) > r) {
@@ -336,8 +346,7 @@ plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
 	return part;
 }
 
-plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2,
-								plot_point_t p3) {
+plot_vec2_t calc_point_project(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3) {
 	// get A vector
 	double Ax = p3.x - p1.x;
 	double Ay = p3.y - p1.y;
@@ -355,19 +364,18 @@ plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2,
 	double s = Ax * Bx + Ay * By;
 
 	// convert vectors back into a point.
-	return (plot_point_t){Bx * s + p1.x, By * s + p1.y};
+	return (plot_vec2_t){Bx * s + p1.x, By * s + p1.y};
 }
 
-plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2,
-							 plot_point_t p3) {
+plot_vec2_t calc_reflect_p3(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3) {
 	// get the point projected onto a line (intersect point)
-	plot_point_t i = calc_point_project(p1, p2, p3);
+	plot_vec2_t i = calc_point_project(p1, p2, p3);
 
 	// get the reflection of p3 along the line using the intersection point.
-	return (plot_point_t){i.x - p3.x + i.x, i.y - p3.y + i.y};
+	return (plot_vec2_t){i.x - p3.x + i.x, i.y - p3.y + i.y};
 }
 
-double calc_dist(plot_point_t p1, plot_point_t p2) {
+double calc_dist(plot_vec2_t p1, plot_vec2_t p2) {
 	return sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 }
 
@@ -376,28 +384,28 @@ double calc_map(double x, double in_min, double in_max, double out_max,
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-plot_point_t calc_circ_center(plot_point_t p1, plot_point_t p2, double r) {
+plot_vec2_t calc_circ_center(plot_vec2_t p1, plot_vec2_t p2, double r) {
 	// get the center as p3
-	plot_point_t p3 = {(p1.x + p2.x) / 2, (p1.y + p2.y) / 2};
+	plot_vec2_t p3 = {(p1.x + p2.x) / 2, (p1.y + p2.y) / 2};
 
 	double dist = calc_dist(p1, p2);
 
 	if(dist / 2 >= r) {
 		// if dist is greater than or equal to the radius, just return the
 		// center of the two points as the circle origin.
-		return (plot_point_t){p3.x, p3.y};
+		return (plot_vec2_t){p3.x, p3.y};
 	}
 
 	// to be honest, I don't entierly get it but hey, what works works so no
 	// need to question it.
-	return (plot_point_t){
+	return (plot_vec2_t){
 		p3.x + sqrt(r * r - (dist / 2) * (dist / 2)) * (p1.y - p2.y) / dist,
 		p3.y + sqrt(r * r - (dist / 2) * (dist / 2)) * (p2.x - p1.x) / dist};
 }
 
-double calc_circ_radius(plot_point_t p1, plot_point_t p2, plot_point_t p3) {
+double calc_circ_radius(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3) {
 	// p4 is calculated to be the mid-point between p1 and p2.
-	plot_point_t p4 = {(p1.x + p2.x) / 2, (p1.y + p2.y) / 2};
+	plot_vec2_t p4 = {(p1.x + p2.x) / 2, (p1.y + p2.y) / 2};
 
 	double base	  = calc_dist(p2, p1);
 	double height = calc_dist(p4, p3);
@@ -426,6 +434,131 @@ double calc_quadrant(double angle, double x, double y) {
 	}
 
 	return angle;
+}
+
+// calculation help:
+// http://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf
+// https://www8.cs.umu.se/kurser/5DV122/HT13/material/Hellstrom-ForwardKinematics.pdf
+// http://robotsforroboticists.com/drive-kinematics/
+
+// note: this doesn't account for slippage which is more common than one would
+// think.
+plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
+								double count_l, double step, double width) {
+	if(count_r == count_l) {
+		return (plot_vec3_t){x + cos(rot) * (count_r * step),
+							 y + sin(rot) * (count_r * step), rot};
+	}
+	else if(count_r == -count_l) {
+		// TODO rotate in place around the middle.
+	}
+	else if(count_r == 0) {
+		// TODO rotate around the right wheel with radius = l / 2
+	}
+	else if(count_l == 0) {
+		// TODO rotate around the left wheel with radius = l / 2
+	}
+
+	double radius	 = width / 2 * (count_l + count_r) / (count_r - count_l);
+	double rot_delta = (count_r - count_l) * step / width;
+
+	plot_vec2_t origin =
+		(plot_vec2_t){x - radius * sin(rot), y + radius * cos(rot)};
+
+	// rotation matrix: roatate by rotation delta around the z axis. (the up
+	// one)
+
+	// [ RMx1y1   RMx2y1   RMx3y1 ]
+	// [                          ]
+	// [ RMx1y2   RMx2y2   RMx3y2 ]
+	// [                          ]
+	// [ RMx1y3   RMx2y3   RMx3y3 ]
+
+	// [ cos(rot_delta)   -sin(rot_delta)   0  ]
+	// [                                       ]
+	// [ sin(rot_delta)   cos(rot_delta)    0  ]
+	// [                                       ]
+	// [       0                0           1  ]
+
+	double RMx1y1 = cos(rot_delta);
+	double RMx1y2 = sin(rot_delta);
+	double RMx1y3 = 0;
+
+	double RMx2y1 = -sin(rot_delta);
+	double RMx2y2 = cos(rot_delta);
+	double RMx2y3 = 0;
+
+	double RMx3y1 = 0;
+	double RMx3y2 = 0;
+	double RMx3y3 = 1;
+
+	// traslate to zero matrix: translates the origin to zero.
+
+	// [ TZx1y1 ]
+	// [        ]
+	// [ TZx1y2 ]
+	// [        ]
+	// [ TZx1y3 ]
+
+	// [ x - origin.x ]
+	// [              ]
+	// [ y - origin.y ]
+	// [              ]
+	// [      rot     ]
+
+	double TZx1y1 = x - origin.x;
+	double TZx1y2 = y - origin.y;
+	double TZx1y3 = rot;
+
+	// translate back matrix: translates back to the original position. (undoes)
+	// translate to zero matrix.
+
+	// [ TBx1y1 ]
+	// [        ]
+	// [ TBx1y2 ]
+	// [        ]
+	// [ TBx1y3 ]
+
+	// [   origin.x  ]
+	// [             ]
+	// [   origin.y  ]
+	// [             ]
+	// [  rot_delta  ]
+
+	double TBx1y1 = origin.x;
+	double TBx1y2 = origin.y;
+	double TBx1y3 = rot_delta;
+
+	// traslation calculation is (RM * TZ) + TB
+	// I really need to look into matrix with transforms because I don't really
+	// have any idea why this equation works.
+
+	// final translation: the new position and rotation of our robot.
+	// multiply RM and TZ matrices.
+	double FTx1y1 = RMx1y1 * TZx1y1 + RMx2y1 * TZx1y2 + RMx3y1 * TZx1y3;
+	double FTx1y2 = RMx1y2 * TZx1y1 + RMx2y2 * TZx1y2 + RMx3y2 * TZx1y3;
+	double FTx1y3 = RMx1y3 * TZx1y1 + RMx2y3 * TZx1y2 + RMx3y3 * TZx1y3;
+
+	// add multiplied RM and TZ matrix with TB matrix.
+	FTx1y1 += TBx1y1;
+	FTx1y2 += TBx1y2;
+	FTx1y3 += TBx1y3;
+
+	if(isnan(FTx1y1) | isnan(FTx1y2) | isnan(FTx1y3)) {
+		puts("calc_skid_transform error");
+		printf("FT=[%.2f, %.2f, %.2f]\n", FTx1y1, FTx1y2, FTx1y3);
+		exit(-1);
+	}
+
+	return (plot_vec3_t){FTx1y1, TBx1y2, TBx1y3};
+}
+
+plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
+								 double width, double radius) {
+	double v_r = rot_delta * (radius + width / 2);
+	double v_l = rot_delta * (radius - width / 2);
+
+	return (plot_vec2_t){v_r, v_l};
 }
 
 int plotbot_set_pos(double x, double y, double rot) {

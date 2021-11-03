@@ -4,23 +4,30 @@
 #define TO_DEG (180 / M_PI)
 #define TO_RAD (M_PI / 180)
 
-typedef struct plot_point_t		plot_point_t;
+typedef struct plot_vec2_t		plot_vec2_t;
+typedef struct plot_vec3_t		plot_vec3_t;
 typedef struct plot_path_t		plot_path_t;
 typedef struct plot_path_part_t plot_path_part_t;
 
 typedef struct plotbot_t plotbot_t;
 typedef struct plot_t	 plot_t;
 
-struct plot_point_t {
+struct plot_vec2_t {
 	double x;
 	double y;
 };
 
+struct plot_vec3_t {
+	double x;
+	double y;
+	double z;
+};
+
 struct plot_path_part_t {
-	plot_point_t start;
-	plot_point_t mid;
-	plot_point_t end;
-	plot_point_t origin;
+	plot_vec2_t start;
+	plot_vec2_t mid;
+	plot_vec2_t end;
+	plot_vec2_t origin;
 
 	double radius;
 
@@ -30,10 +37,10 @@ struct plot_path_part_t {
 };
 
 struct plot_path_t {
-	plot_point_t* points;
-	plot_point_t* radii; // radii is the plural of radius by the way.
-	int			  point_count;
-	int			  size;
+	plot_vec2_t* points;
+	plot_vec2_t* radii; // radii is the plural of radius by the way.
+	int			 point_count;
+	int			 size;
 };
 
 struct plotbot_t {
@@ -53,7 +60,7 @@ struct plot_t {
 	double width;
 	double height;
 
-	plot_point_t origin;
+	plot_vec2_t origin;
 
 #define PLOT_MAX_PATHS 256
 	plot_path_t	  paths[PLOT_MAX_PATHS];
@@ -87,17 +94,16 @@ double plot_bottom();
 double plot_right();
 double plot_left();
 
-plot_point_t plot_origin();
-plot_point_t plot_coord(double x, double y);
-double		 plot_x(double x);
-double		 plot_y(double y);
+plot_vec2_t plot_origin();
+plot_vec2_t plot_coord(double x, double y);
+double		plot_x(double x);
+double		plot_y(double y);
 
-plot_path_part_t calc_path_part(plot_point_t start, plot_point_t mid,
-								plot_point_t end, double radius);
+plot_path_part_t calc_path_part(plot_vec2_t start, plot_vec2_t mid,
+								plot_vec2_t end, double radius);
 
-plot_point_t calc_point_project(plot_point_t p1, plot_point_t p2,
-								plot_point_t p3);
-plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2, plot_point_t p3);
+plot_vec2_t calc_point_project(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3);
+plot_vec2_t calc_reflect_p3(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3);
 
 /**
  * @brief calculates the distance between two points.
@@ -106,7 +112,7 @@ plot_point_t calc_reflect_p3(plot_point_t p1, plot_point_t p2, plot_point_t p3);
  * @param p2 the second point
  * @return double the distance between the two.
  */
-double calc_dist(plot_point_t p1, plot_point_t p2);
+double calc_dist(plot_vec2_t p1, plot_vec2_t p2);
 
 double calc_map(double x, double in_min, double in_max, double out_max,
 				double out_min);
@@ -119,7 +125,7 @@ double calc_map(double x, double in_min, double in_max, double out_max,
  * @param r the circle radius
  * @return plot_point_t the origin of the circle.
  */
-plot_point_t calc_circ_center(plot_point_t p1, plot_point_t p2, double r);
+plot_vec2_t calc_circ_center(plot_vec2_t p1, plot_vec2_t p2, double r);
 
 /**
  * @brief calculates a circle radius given three points on the circumfrence of
@@ -131,7 +137,7 @@ plot_point_t calc_circ_center(plot_point_t p1, plot_point_t p2, double r);
  * @param p3 the third point
  * @return double the radius of the circle.
  */
-double calc_circ_radius(plot_point_t p1, plot_point_t p2, plot_point_t p3);
+double calc_circ_radius(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3);
 
 /**
  * @brief takes a point and an angle local to one quadrant and calculates the
@@ -143,6 +149,12 @@ double calc_circ_radius(plot_point_t p1, plot_point_t p2, plot_point_t p3);
  * @return double the global angle of the supplied angle.
  */
 double calc_quadrant(double angle, double x, double y);
+
+plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
+								double count_l, double step, double width);
+
+plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
+								 double width, double radius);
 
 int plotbot_set_pos(double x, double y, double rot);
 
