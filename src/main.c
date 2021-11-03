@@ -100,7 +100,7 @@ int main(void) {
 		if(IsMouseButtonReleased(1)) {
 			double mx = plot_x(mouse.x);
 			double my = plot_y(mouse.y);
-			plot_point_t prev = plot->paths[plot->sel].points[plot->paths[plot->sel].point_count - 1];
+			plot_vec2_t prev = plot->paths[plot->sel].points[plot->paths[plot->sel].point_count - 1];
 			plot_point_add((prev.x + mx) / 2 + 1, (prev.y + my) / 2);
 			plot_point_add(mx, my);
 		}
@@ -152,9 +152,9 @@ int main(void) {
 					break;
 				}
 
-				plot_point_t start = plot->paths[i].points[j];
-				plot_point_t mid   = plot->paths[i].points[j + 1];
-				plot_point_t end   = plot->paths[i].points[j + 2];
+				plot_vec2_t start = plot->paths[i].points[j];
+				plot_vec2_t mid   = plot->paths[i].points[j + 1];
+				plot_vec2_t end   = plot->paths[i].points[j + 2];
 
 				double r = calc_dist(start, end) / 2;
 
