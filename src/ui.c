@@ -4,12 +4,12 @@
 
 #include "raylib.h"
 
-static ui_t ui		= {0};
+static ui_t ui      = {0};
 static Font ui_font = {0};
 
 static int ui_pos_in_rect(int x, int y, ui_rect_t rect) {
 	return x >= rect.x && x <= rect.x + rect.width && y >= rect.y &&
-		   y <= rect.y + rect.height;
+	       y <= rect.y + rect.height;
 }
 
 static inline Color ui_c2c(ui_color_t c) {
@@ -17,30 +17,30 @@ static inline Color ui_c2c(ui_color_t c) {
 }
 
 static inline void ui_draw_text(char* text, ui_rect_t rect, int fontsize,
-								ui_color_t color) {
+                                ui_color_t color) {
 	Vector2 txtsize = MeasureTextEx(ui_font, text, fontsize, 1.2f);
 	DrawTextEx(ui_font, text,
-			   (Vector2){rect.x + rect.width / 2 - txtsize.x / 2,
-						 rect.y + rect.height / 2 - txtsize.y / 2},
-			   fontsize, 1.2f, ui_c2c(color));
+	           (Vector2){rect.x + rect.width / 2 - txtsize.x / 2,
+	                     rect.y + rect.height / 2 - txtsize.y / 2},
+	           fontsize, 1.2f, ui_c2c(color));
 }
 
 static inline void ui_draw_rect(ui_rect_t rect, int outline, ui_color_t color,
-								ui_color_t outline_color) {
+                                ui_color_t outline_color) {
 	DrawRectangle(rect.x, rect.y, rect.width, rect.height, ui_c2c(color));
 	DrawRectangleLinesEx((Rectangle){rect.x, rect.y, rect.width, rect.height},
-						 outline, ui_c2c(outline_color));
+	                     outline, ui_c2c(outline_color));
 }
 
 int ui_init() {
-	ui.col_a	= (ui_color_t){255, 0, 0};
-	ui.col_p	= (ui_color_t){0, 0, 0};
+	ui.col_a    = (ui_color_t){255, 0, 0};
+	ui.col_p    = (ui_color_t){0, 0, 0};
 	ui.col_bg_s = (ui_color_t){229, 229, 229};
-	ui.col_bg	= (ui_color_t){255, 255, 255};
+	ui.col_bg   = (ui_color_t){255, 255, 255};
 
 	ui.font_path = "C:/Windows/Fonts/arial.ttf";
 	ui.font_size = 12;
-	ui_font		 = LoadFont(ui.font_path);
+	ui_font      = LoadFont(ui.font_path);
 
 	return 0;
 }
@@ -91,7 +91,7 @@ int ui_btn_tick(ui_btn_t* btn) {
 
 int ui_btn_draw(ui_btn_t* btn) {
 	ui_color_t bg = btn->is_hover ? ui.col_bg_s : ui.col_bg;
-	bg			  = btn->is_held ? ui.col_bg : bg;
+	bg            = btn->is_held ? ui.col_bg : bg;
 
 	ui_draw_rect(btn->rect, 0, bg, ui.col_p);
 

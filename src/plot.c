@@ -14,7 +14,7 @@ static plot_t plot = {0};
 // Hash function from http://www.cse.yorku.ca/~oz/hash.html
 static unsigned long hash(char* str) {
 	unsigned long hash = 5381;
-	int			  c;
+	int           c;
 
 	while((c = *str++))
 		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
@@ -25,7 +25,7 @@ static unsigned long hash(char* str) {
 plot_t* plot_new(double width, double height) {
 	memset(&plot, 0, sizeof(plot));
 
-	plot.width	= width;
+	plot.width  = width;
 	plot.height = height;
 
 	return &plot;
@@ -42,13 +42,13 @@ int plot_path_add(char* name) {
 			continue;
 		}
 
-		plot.path_names[i]	= name;
+		plot.path_names[i]  = name;
 		plot.path_hashes[i] = hash(name);
 		memset(&plot.paths[i], 0, sizeof(plot.paths[i]));
 
-		plot.paths[i].size	 = 4;
+		plot.paths[i].size   = 4;
 		plot.paths[i].points = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
-		plot.paths[i].radii	 = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
+		plot.paths[i].radii  = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
 
 		return 0;
 	}
@@ -61,7 +61,7 @@ int plot_path_del(char* name) {
 
 	for(int i = 0; i < PLOT_MAX_PATHS; i++) {
 		if(plot.path_hashes[i] == h) {
-			plot.path_names[i]	= NULL;
+			plot.path_names[i]  = NULL;
 			plot.path_hashes[i] = 0;
 
 			memset(&plot.paths[i], 0, sizeof(plot.paths[i]));
@@ -112,16 +112,16 @@ int plot_point_add(double x, double y) {
 
 		// resize point buffer to fit more points.
 		plot.paths[plot.sel].points =
-			plot_buffer_resize(plot.paths[plot.sel].points,
-							   plot.paths[plot.sel].size * sizeof(plot_vec2_t),
-							   new_size * sizeof(plot_vec2_t));
+		    plot_buffer_resize(plot.paths[plot.sel].points,
+		                       plot.paths[plot.sel].size * sizeof(plot_vec2_t),
+		                       new_size * sizeof(plot_vec2_t));
 
 		// now do the same but for the radii. note that radii has half the size
 		// because there is only 1 radii point for every two points.
 		plot.paths[plot.sel].radii =
-			plot_buffer_resize(plot.paths[plot.sel].radii,
-							   plot.paths[plot.sel].size * sizeof(plot_vec2_t),
-							   new_size * sizeof(plot_vec2_t) / 2);
+		    plot_buffer_resize(plot.paths[plot.sel].radii,
+		                       plot.paths[plot.sel].size * sizeof(plot_vec2_t),
+		                       new_size * sizeof(plot_vec2_t) / 2);
 
 		plot.paths[plot.sel].size = new_size;
 	}
@@ -136,9 +136,9 @@ int plot_point_add(double x, double y) {
 	if(index != 0 && index % 2 == 0) {
 		// set the radii to the average of the new point and previous point.
 		plot.paths[plot.sel].radii[index / 2].x =
-			(plot.paths[plot.sel].points[index - 1].x + x) / 2;
+		    (plot.paths[plot.sel].points[index - 1].x + x) / 2;
 		plot.paths[plot.sel].radii[index / 2].y =
-			(plot.paths[plot.sel].points[index - 1].y + y) / 2;
+		    (plot.paths[plot.sel].points[index - 1].y + y) / 2;
 	}
 
 	plot.paths[plot.sel].point_count++;
@@ -150,8 +150,8 @@ int plot_point_add(double x, double y) {
 // broke. Adding new points after delteting points is odd.
 int plot_point_del(int index) {
 	memcpy(plot.paths[plot.sel].points + index - 1,
-		   plot.paths[plot.sel].points + index,
-		   plot.paths[plot.sel].point_count - index);
+	       plot.paths[plot.sel].points + index,
+	       plot.paths[plot.sel].point_count - index);
 
 	plot.paths[plot.sel].point_count--;
 
@@ -242,14 +242,14 @@ double plot_y(double y) {
 // the restrictions with the formulas I used.
 
 plot_path_part_t calc_path_part(plot_vec2_t start, plot_vec2_t mid,
-								plot_vec2_t end, double radius) {
+                                plot_vec2_t end, double radius) {
 	plot_path_part_t part = {0};
 
 	plot_vec2_t real_middle =
-		(plot_vec2_t){(start.x + end.x) / 2, (start.y + end.y) / 2};
+	    (plot_vec2_t){(start.x + end.x) / 2, (start.y + end.y) / 2};
 
 	// double		 r	= calc_dist(start, end) / 2;
-	double		r  = radius;
+	double      r  = radius;
 	plot_vec2_t co = calc_circ_center(start, end, r);
 
 	// reflect the circle depending on the middle point.
@@ -317,7 +317,7 @@ plot_path_part_t calc_path_part(plot_vec2_t start, plot_vec2_t mid,
 	double da = atan2(sin(a1 - a2), cos(a1 - a2));
 
 	part.start_angle = a1;
-	part.end_angle	 = a2;
+	part.end_angle   = a2;
 
 	part.delta_angle = da;
 
@@ -330,9 +330,9 @@ plot_path_part_t calc_path_part(plot_vec2_t start, plot_vec2_t mid,
 	// get a projection of the mid point onto the line between the start and end
 	// points.
 	plot_vec2_t proj = calc_point_project(
-		co,
-		(plot_vec2_t){cos(a1 - da / 2) * r + co.x, sin(a1 - da / 2) * r + co.y},
-		mid);
+	    co,
+	    (plot_vec2_t){cos(a1 - da / 2) * r + co.x, sin(a1 - da / 2) * r + co.y},
+	    mid);
 
 	// restrict the mid point to inside the circle.
 	if(calc_dist(proj, co) > r) {
@@ -357,8 +357,8 @@ plot_vec2_t calc_point_project(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3) {
 
 	// normalize B vector
 	double Bmag = sqrt(Bx * Bx + By * By);
-	Bx			= Bx / Bmag;
-	By			= By / Bmag;
+	Bx          = Bx / Bmag;
+	By          = By / Bmag;
 
 	// get the dot product of the A and B vector.
 	double s = Ax * Bx + Ay * By;
@@ -380,7 +380,7 @@ double calc_dist(plot_vec2_t p1, plot_vec2_t p2) {
 }
 
 double calc_map(double x, double in_min, double in_max, double out_max,
-				double out_min) {
+                double out_min) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
@@ -399,22 +399,22 @@ plot_vec2_t calc_circ_center(plot_vec2_t p1, plot_vec2_t p2, double r) {
 	// to be honest, I don't entierly get it but hey, what works works so no
 	// need to question it.
 	return (plot_vec2_t){
-		p3.x + sqrt(r * r - (dist / 2) * (dist / 2)) * (p1.y - p2.y) / dist,
-		p3.y + sqrt(r * r - (dist / 2) * (dist / 2)) * (p2.x - p1.x) / dist};
+	    p3.x + sqrt(r * r - (dist / 2) * (dist / 2)) * (p1.y - p2.y) / dist,
+	    p3.y + sqrt(r * r - (dist / 2) * (dist / 2)) * (p2.x - p1.x) / dist};
 }
 
 double calc_circ_radius(plot_vec2_t p1, plot_vec2_t p2, plot_vec2_t p3) {
 	// p4 is calculated to be the mid-point between p1 and p2.
 	plot_vec2_t p4 = {(p1.x + p2.x) / 2, (p1.y + p2.y) / 2};
 
-	double base	  = calc_dist(p2, p1);
+	double base   = calc_dist(p2, p1);
 	double height = calc_dist(p4, p3);
 
 	double area = (base * height) / 2;
 
 	// again, no idea what's happening but it also works.
 	return calc_dist(p1, p2) * calc_dist(p2, p3) * calc_dist(p3, p1) /
-		   (area * 4);
+	       (area * 4);
 }
 
 double calc_quadrant(double angle, double x, double y) {
@@ -444,7 +444,7 @@ double calc_quadrant(double angle, double x, double y) {
 // note: this doesn't account for slippage which is more common than one would
 // think.
 plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
-								double count_l, double step, double width) {
+                                double count_l, double step, double width) {
 	if(count_r == 0 && count_l == 0) {
 		return (plot_vec3_t){x, y, rot};
 	}
@@ -465,11 +465,11 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 		// TODO rotate around the left wheel with radius = l / 2
 	}
 
-	double radius	 = width / 2.0 * (count_l + count_r) / (count_r - count_l);
+	double radius    = width / 2.0 * (count_l + count_r) / (count_r - count_l);
 	double rot_delta = (count_r - count_l) * step / width;
 
 	plot_vec2_t origin =
-		(plot_vec2_t){x - radius * sin(rot), y + radius * cos(rot)};
+	    (plot_vec2_t){x - radius * sin(rot), y + radius * cos(rot)};
 
 	// rotation matrix: roatate by rotation delta around the z axis. (the up
 	// one)
@@ -560,7 +560,7 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 }
 
 plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
-								 double width, double radius) {
+                                 double width, double radius) {
 	double v_r = rot_delta * (radius + width / 2);
 	double v_l = rot_delta * (radius - width / 2);
 

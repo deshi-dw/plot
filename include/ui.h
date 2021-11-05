@@ -1,13 +1,13 @@
 #ifndef UI_H
 #define UI_H
 
-typedef struct ui_pos_t	  ui_pos_t;
+typedef struct ui_pos_t   ui_pos_t;
 typedef struct ui_rect_t  ui_rect_t;
 typedef struct ui_color_t ui_color_t;
 
-typedef struct ui_text_t	ui_text_t;
+typedef struct ui_text_t    ui_text_t;
 typedef struct ui_textbox_t ui_textbox_t;
-typedef struct ui_btn_t		ui_btn_t;
+typedef struct ui_btn_t     ui_btn_t;
 
 typedef struct ui_event_t ui_event_t;
 
@@ -33,7 +33,7 @@ struct ui_color_t {
 
 struct ui_text_t {
 	ui_rect_t rect;
-	char*	  text;
+	char*     text;
 };
 
 struct ui_btn_t {
@@ -41,8 +41,8 @@ struct ui_btn_t {
 
 	void (*on_press)();
 
-	int	  is_hover;
-	int	  is_held;
+	int   is_hover;
+	int   is_held;
 	char* text;
 };
 
@@ -128,7 +128,7 @@ struct ui_t {
 	ui_color_t col_bg;
 
 	char* font_path;
-	int	  font_size;
+	int   font_size;
 };
 
 int ui_init();

@@ -66,4 +66,4 @@ SpacesInContainerLiterals: 'true'
 SpacesInParentheses: 'false'
 SpacesInSquareBrackets: 'false'
 TabWidth: '4'
-UseTab: Always
+UseTab: ForIndentation

@@ -11,7 +11,7 @@ bot_t* bot_init(double x, double y, double axel_width, double wheel_diameter) {
 	bot.x = x;
 	bot.y = y;
 
-	bot.axel_width	   = axel_width;
+	bot.axel_width     = axel_width;
 	bot.wheel_diameter = wheel_diameter;
 
 	bot.width  = bot.axel_width;
@@ -42,10 +42,10 @@ int bot_tick(double dt) {
 	double step = M_PI * bot.wheel_diameter / 128;
 
 	plot_vec3_t newpos = calc_skid_transform(bot.x, bot.y, bot.rot, pps_r,
-											 pps_l, step, bot.axel_width);
+	                                         pps_l, step, bot.axel_width);
 
-	bot.x	= newpos.x;
-	bot.y	= newpos.y;
+	bot.x   = newpos.x;
+	bot.y   = newpos.y;
 	bot.rot = newpos.z;
 
 	return 0;
@@ -74,7 +74,7 @@ int bot_arcade(double turn, double speed, double range) {
 	double w = (range - abs_y) * (x / range) + x;
 
 	double right = (v + w) / 2;
-	double left	 = (v - w) / 2;
+	double left  = (v - w) / 2;
 
 	bot_tank(right, left);
 

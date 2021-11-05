@@ -40,23 +40,23 @@ int main(void) {
 	bot_t* bot = bot_init(10, 10, 45.0, 6.0);
 
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
-	Vector2	 mouse = {0};
+	Vector2  mouse = {0};
 
 	ui_init();
 
-	ui_btn_t btn_file	 = {0};
-	btn_file.rect.x		 = 0;
-	btn_file.rect.y		 = 0;
-	btn_file.rect.width	 = 30;
+	ui_btn_t btn_file    = {0};
+	btn_file.rect.x      = 0;
+	btn_file.rect.y      = 0;
+	btn_file.rect.width  = 30;
 	btn_file.rect.height = 12;
-	btn_file.text		 = "file";
+	btn_file.text        = "file";
 
-	ui_btn_t btn_edit	 = {0};
-	btn_edit.rect.x		 = 30;
-	btn_edit.rect.y		 = 0;
-	btn_edit.rect.width	 = 30;
+	ui_btn_t btn_edit    = {0};
+	btn_edit.rect.x      = 30;
+	btn_edit.rect.y      = 0;
+	btn_edit.rect.width  = 30;
 	btn_edit.rect.height = 12;
-	btn_edit.text		 = "edit";
+	btn_edit.text        = "edit";
 
 	double steer_x = 0.0;
 	double steer_y = 0.0;
@@ -69,14 +69,14 @@ int main(void) {
 		}
 		else if(IsKeyDown(KEY_LEFT)) {
 			steer_x =
-				steer_x - sensetivity < -1.0 ? -1.0 : steer_x - sensetivity;
+			    steer_x - sensetivity < -1.0 ? -1.0 : steer_x - sensetivity;
 		}
 		else {
 			// move steer_x to zero. If the hundredth place rounds to zero, set
 			// steer_x to zero.
 			steer_x = round(steer_x * stop_speed * 100) == 0
-						  ? 0
-						  : steer_x * stop_speed;
+			              ? 0
+			              : steer_x * stop_speed;
 		}
 
 		if(IsKeyDown(KEY_UP)) {
@@ -84,14 +84,14 @@ int main(void) {
 		}
 		else if(IsKeyDown(KEY_DOWN)) {
 			steer_y =
-				steer_y - sensetivity < -1.0 ? -1.0 : steer_y - sensetivity;
+			    steer_y - sensetivity < -1.0 ? -1.0 : steer_y - sensetivity;
 		}
 		else {
 			// move steer_y to zero. If the hundredth place rounds to zero, set
 			// steer_y to zero.
 			steer_y = round(steer_y * stop_speed * 100) == 0
-						  ? 0
-						  : steer_y * stop_speed;
+			              ? 0
+			              : steer_y * stop_speed;
 		}
 
 		if(IsKeyDown(KEY_R)) {
@@ -104,19 +104,19 @@ int main(void) {
 		// cam.offset.x = bot->x;
 		// cam.offset.y = bot->y;
 		printf("bot(%.2f,%.2f  %.2f)  steer(%.2f,%.2f)  speed(%.2f,%.2f)  "
-			   "cam(%.2f,%.2f)   dt=%.2f\n",
-			   bot->x, bot->y, bot->rot, steer_x, steer_y, bot->speed_r,
-			   bot->speed_l, cam.offset.x, cam.offset.y, GetFrameTime());
+		       "cam(%.2f,%.2f)   dt=%.2f\n",
+		       bot->x, bot->y, bot->rot, steer_x, steer_y, bot->speed_r,
+		       bot->speed_l, cam.offset.x, cam.offset.y, GetFrameTime());
 		printf("  pps(%.2f,%.2f) step=%.2f\n",
-			   (BOT_MAX_RPM / 60.0) * bot->speed_r * 128 * GetFrameTime(),
-			   (BOT_MAX_RPM / 60.0) * bot->speed_l * 128 * GetFrameTime(),
-			   M_PI * bot->wheel_diameter / 128);
+		       (BOT_MAX_RPM / 60.0) * bot->speed_r * 128 * GetFrameTime(),
+		       (BOT_MAX_RPM / 60.0) * bot->speed_l * 128 * GetFrameTime(),
+		       M_PI * bot->wheel_diameter / 128);
 
 		mouse = GetScreenToWorld2D(GetMousePosition(), cam);
 
 		if(IsMouseButtonPressed(0)) {
 			cursor.sel =
-				plot_point_get_index(plot_x(mouse.x), plot_y(mouse.y), 4.0);
+			    plot_point_get_index(plot_x(mouse.x), plot_y(mouse.y), 4.0);
 			if(cursor.sel >= 0) {
 				cursor.is_moving = 1;
 			}
@@ -133,11 +133,11 @@ int main(void) {
 		}
 
 		if(IsMouseButtonReleased(1)) {
-			double		mx = plot_x(mouse.x);
-			double		my = plot_y(mouse.y);
+			double      mx = plot_x(mouse.x);
+			double      my = plot_y(mouse.y);
 			plot_vec2_t prev =
-				plot->paths[plot->sel]
-					.points[plot->paths[plot->sel].point_count - 1];
+			    plot->paths[plot->sel]
+			        .points[plot->paths[plot->sel].point_count - 1];
 			plot_point_add((prev.x + mx) / 2 + 1, (prev.y + my) / 2);
 			plot_point_add(mx, my);
 		}
@@ -163,20 +163,20 @@ int main(void) {
 
 		// Draw robot
 		DrawRectanglePro((Rectangle){plot_x(bot->x), plot_y(bot->y),
-									 bot->height, bot->width},
-						 (Vector2){bot->height / 2, bot->width / 2},
-						 -bot->rot * TO_DEG, DARKGREEN);
+		                             bot->height, bot->width},
+		                 (Vector2){bot->height / 2, bot->width / 2},
+		                 -bot->rot * TO_DEG, DARKGREEN);
 
 // draw plot borders
 #define THICK 3.0f
 		DrawLineEx((Vector2){plot_left(), plot_bottom()},
-				   (Vector2){plot_left(), plot_top()}, THICK, BLACK);
+		           (Vector2){plot_left(), plot_top()}, THICK, BLACK);
 		DrawLineEx((Vector2){plot_right(), plot_bottom()},
-				   (Vector2){plot_right(), plot_top()}, THICK, BLACK);
+		           (Vector2){plot_right(), plot_top()}, THICK, BLACK);
 		DrawLineEx((Vector2){plot_left(), plot_top()},
-				   (Vector2){plot_right(), plot_top()}, THICK, BLACK);
+		           (Vector2){plot_right(), plot_top()}, THICK, BLACK);
 		DrawLineEx((Vector2){plot_left(), plot_bottom()},
-				   (Vector2){plot_right(), plot_bottom()}, THICK, BLACK);
+		           (Vector2){plot_right(), plot_bottom()}, THICK, BLACK);
 #undef THICK
 
 		// draw mouse coordinates
@@ -197,16 +197,16 @@ int main(void) {
 				}
 
 				plot_vec2_t start = plot->paths[i].points[j];
-				plot_vec2_t mid	  = plot->paths[i].points[j + 1];
-				plot_vec2_t end	  = plot->paths[i].points[j + 2];
+				plot_vec2_t mid   = plot->paths[i].points[j + 1];
+				plot_vec2_t end   = plot->paths[i].points[j + 2];
 
 				double r = calc_dist(start, end) / 2;
 
-				double			 real_radius = 0.0;
+				double           real_radius = 0.0;
 				plot_path_part_t part;
 
 				// do initial part calculation with baseline radius.
-				part		= calc_path_part(start, mid, end, r);
+				part        = calc_path_part(start, mid, end, r);
 				real_radius = calc_circ_radius(start, end, part.mid);
 
 				// calculate part again but this time with a "real radius".
@@ -238,12 +238,12 @@ int main(void) {
 					double angle_part = part.delta_angle / detail * k;
 
 					double px =
-						cos(part.start_angle - angle_part) * part.radius;
+					    cos(part.start_angle - angle_part) * part.radius;
 					double py =
-						sin(part.start_angle - angle_part) * part.radius;
+					    sin(part.start_angle - angle_part) * part.radius;
 
 					DrawCircle(plot_x(px + part.origin.x),
-							   plot_y(py + part.origin.y), 2.0f, BLACK);
+					           plot_y(py + part.origin.y), 2.0f, BLACK);
 				}
 
 				DrawCircle(plot_x(start.x), plot_y(start.y), 3.0f, BLACK);
