@@ -127,8 +127,8 @@ struct ui_t {
 	ui_color_t col_bg_s;
 	ui_color_t col_bg;
 
-    char* font_path;
-    int font_size;
+	char* font_path;
+	int	  font_size;
 };
 
 int ui_init();

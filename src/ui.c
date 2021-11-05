@@ -39,7 +39,7 @@ int ui_init() {
 	ui.col_bg	= (ui_color_t){255, 255, 255};
 
 	ui.font_path = "C:/Windows/Fonts/arial.ttf";
-    ui.font_size = 12;
+	ui.font_size = 12;
 	ui_font		 = LoadFont(ui.font_path);
 
 	return 0;

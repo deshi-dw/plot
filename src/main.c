@@ -9,6 +9,7 @@
 #include "raylib.h"
 
 #include "plot.h"
+#include "bot.h"
 #include "ui.h"
 
 struct {
@@ -36,46 +37,80 @@ int main(void) {
 	// plot_point_add(630, 220);
 	// plot_point_add(630, 420);
 
+	bot_t* bot = bot_init(10, 10, 45.0, 6.0);
+
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
 	Vector2	 mouse = {0};
 
 	ui_init();
 
-	ui_btn_t btn_file = {0};
-	btn_file.rect.x = 0;
-	btn_file.rect.y = 0;
-	btn_file.rect.width = 30;
+	ui_btn_t btn_file	 = {0};
+	btn_file.rect.x		 = 0;
+	btn_file.rect.y		 = 0;
+	btn_file.rect.width	 = 30;
 	btn_file.rect.height = 12;
-	btn_file.text = "file";
+	btn_file.text		 = "file";
 
-	ui_btn_t btn_edit = {0};
-	btn_edit.rect.x = 30;
-	btn_edit.rect.y = 0;
-	btn_edit.rect.width = 30;
+	ui_btn_t btn_edit	 = {0};
+	btn_edit.rect.x		 = 30;
+	btn_edit.rect.y		 = 0;
+	btn_edit.rect.width	 = 30;
 	btn_edit.rect.height = 12;
-	btn_edit.text = "edit";
+	btn_edit.text		 = "edit";
 
-	int is_flipped = 0;
-
+	double steer_x = 0.0;
+	double steer_y = 0.0;
 	while(! WindowShouldClose()) {
-		float cam_sensetivity = 10.0f;
+		double sensetivity = 0.25;
+		double stop_speed  = 0.5;
+
 		if(IsKeyDown(KEY_RIGHT)) {
-			cam.offset.x -= cam_sensetivity;
+			steer_x = steer_x + sensetivity > 1.0 ? 1.0 : steer_x + sensetivity;
 		}
 		else if(IsKeyDown(KEY_LEFT)) {
-			cam.offset.x += cam_sensetivity;
+			steer_x =
+				steer_x - sensetivity < -1.0 ? -1.0 : steer_x - sensetivity;
+		}
+		else {
+			// move steer_x to zero. If the hundredth place rounds to zero, set
+			// steer_x to zero.
+			steer_x = round(steer_x * stop_speed * 100) == 0
+						  ? 0
+						  : steer_x * stop_speed;
 		}
 
 		if(IsKeyDown(KEY_UP)) {
-			cam.offset.y += cam_sensetivity;
+			steer_y = steer_y + sensetivity > 1.0 ? 1.0 : steer_y + sensetivity;
 		}
 		else if(IsKeyDown(KEY_DOWN)) {
-			cam.offset.y -= cam_sensetivity;
+			steer_y =
+				steer_y - sensetivity < -1.0 ? -1.0 : steer_y - sensetivity;
+		}
+		else {
+			// move steer_y to zero. If the hundredth place rounds to zero, set
+			// steer_y to zero.
+			steer_y = round(steer_y * stop_speed * 100) == 0
+						  ? 0
+						  : steer_y * stop_speed;
 		}
 
-		if(IsKeyPressed(KEY_F)) {
-			is_flipped = ! is_flipped;
+		if(IsKeyDown(KEY_R)) {
+			bot = bot_init(0, 0, bot->axel_width, bot->wheel_diameter);
 		}
+
+		bot_arcade(-steer_x, steer_y, 1.0);
+		bot_tick(GetFrameTime());
+
+		// cam.offset.x = bot->x;
+		// cam.offset.y = bot->y;
+		printf("bot(%.2f,%.2f  %.2f)  steer(%.2f,%.2f)  speed(%.2f,%.2f)  "
+			   "cam(%.2f,%.2f)   dt=%.2f\n",
+			   bot->x, bot->y, bot->rot, steer_x, steer_y, bot->speed_r,
+			   bot->speed_l, cam.offset.x, cam.offset.y, GetFrameTime());
+		printf("  pps(%.2f,%.2f) step=%.2f\n",
+			   (BOT_MAX_RPM / 60.0) * bot->speed_r * 128 * GetFrameTime(),
+			   (BOT_MAX_RPM / 60.0) * bot->speed_l * 128 * GetFrameTime(),
+			   M_PI * bot->wheel_diameter / 128);
 
 		mouse = GetScreenToWorld2D(GetMousePosition(), cam);
 
@@ -98,15 +133,18 @@ int main(void) {
 		}
 
 		if(IsMouseButtonReleased(1)) {
-			double mx = plot_x(mouse.x);
-			double my = plot_y(mouse.y);
-			plot_vec2_t prev = plot->paths[plot->sel].points[plot->paths[plot->sel].point_count - 1];
+			double		mx = plot_x(mouse.x);
+			double		my = plot_y(mouse.y);
+			plot_vec2_t prev =
+				plot->paths[plot->sel]
+					.points[plot->paths[plot->sel].point_count - 1];
 			plot_point_add((prev.x + mx) / 2 + 1, (prev.y + my) / 2);
 			plot_point_add(mx, my);
 		}
 
 		if(IsKeyDown(KEY_DELETE)) {
-			if(cursor.sel != -1 && cursor.sel < plot->paths[plot->sel].point_count) {
+			if(cursor.sel != -1 &&
+			   cursor.sel < plot->paths[plot->sel].point_count) {
 				plot_point_del(cursor.sel);
 			}
 		}
@@ -122,6 +160,12 @@ int main(void) {
 		ui_btn_draw(&btn_edit);
 
 		BeginMode2D(cam);
+
+		// Draw robot
+		DrawRectanglePro((Rectangle){plot_x(bot->x), plot_y(bot->y),
+									 bot->height, bot->width},
+						 (Vector2){bot->height / 2, bot->width / 2},
+						 -bot->rot * TO_DEG, DARKGREEN);
 
 // draw plot borders
 #define THICK 3.0f
@@ -153,8 +197,8 @@ int main(void) {
 				}
 
 				plot_vec2_t start = plot->paths[i].points[j];
-				plot_vec2_t mid   = plot->paths[i].points[j + 1];
-				plot_vec2_t end   = plot->paths[i].points[j + 2];
+				plot_vec2_t mid	  = plot->paths[i].points[j + 1];
+				plot_vec2_t end	  = plot->paths[i].points[j + 2];
 
 				double r = calc_dist(start, end) / 2;
 

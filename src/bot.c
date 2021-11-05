@@ -7,9 +7,15 @@
 
 static bot_t bot;
 
-bot_t* bot_init(double x, double y) {
+bot_t* bot_init(double x, double y, double axel_width, double wheel_diameter) {
 	bot.x = x;
 	bot.y = y;
+
+	bot.axel_width	   = axel_width;
+	bot.wheel_diameter = wheel_diameter;
+
+	bot.width  = bot.axel_width;
+	bot.height = bot.axel_width * 1.75;
 
 	bot.gear_ratio_r = 15.0 / 45.0;
 	bot.gear_ratio_l = 15.0 / 45.0;
@@ -24,8 +30,8 @@ int bot_tick(double dt) {
 	// and multiplying it by the motor speed. Assuming the resolution of the
 	// encoder (ie samples per rotation) is 128, multiply the rps by the number
 	// of samples.
-	double pps_r = (BOT_MAX_RPM / 60.0) * bot.speed_r * 128;
-	double pps_l = (BOT_MAX_RPM / 60.0) * bot.speed_l * 128;
+	double pps_r = (BOT_MAX_RPM / 60.0) * bot.speed_r * 128 * dt;
+	double pps_l = (BOT_MAX_RPM / 60.0) * bot.speed_l * 128 * dt;
 
 	// get how much distance is covered in one wheel spin.
 	// remember divide by the resolution so we get the step size of just a
@@ -53,13 +59,14 @@ int bot_tank(double r, double l) {
 }
 
 int bot_arcade(double turn, double speed, double range) {
-    // clamp turn and speed values between -range and range.
-	double x = -range > turn ? turn < range ? turn : range : -range;
-	double y = -range > speed ? speed < range ? speed : range : -range;
+	// clamp turn and speed values between -range and range.
 
-    // get absolute x and y values.
-    double abs_x = x < 0 ? -x : x;
-    double abs_y = y < 0 ? -y : y;
+	double x = turn > range ? range : turn < -range ? -range : turn;
+	double y = speed > range ? range : speed < -range ? -range : speed;
+
+	// get absolute x and y values.
+	double abs_x = x < 0 ? -x : x;
+	double abs_y = y < 0 ? -y : y;
 
 	// the formula used here was gotten from the following article:
 	// https://home.kendra.com/mauser/Joystick.html
@@ -67,7 +74,7 @@ int bot_arcade(double turn, double speed, double range) {
 	double w = (range - abs_y) * (x / range) + x;
 
 	double right = (v + w) / 2;
-	double left	= (v - w) / 2;
+	double left	 = (v - w) / 2;
 
 	bot_tank(right, left);
 

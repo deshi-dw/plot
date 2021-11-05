@@ -445,9 +445,15 @@ double calc_quadrant(double angle, double x, double y) {
 // think.
 plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 								double count_l, double step, double width) {
+	if(count_r == 0 && count_l == 0) {
+		return (plot_vec3_t){x, y, rot};
+	}
+
 	if(count_r == count_l) {
-		return (plot_vec3_t){x + cos(rot) * (count_r * step),
-							 y + sin(rot) * (count_r * step), rot};
+		// return (plot_vec3_t){x + cos(rot) * (count_r * step),
+		// 					 y + sin(rot) * (count_r * step), rot};
+		// TODO stop doing this.
+		count_l += 0.001;
 	}
 	else if(count_r == -count_l) {
 		// TODO rotate in place around the middle.
@@ -459,7 +465,7 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 		// TODO rotate around the left wheel with radius = l / 2
 	}
 
-	double radius	 = width / 2 * (count_l + count_r) / (count_r - count_l);
+	double radius	 = width / 2.0 * (count_l + count_r) / (count_r - count_l);
 	double rot_delta = (count_r - count_l) * step / width;
 
 	plot_vec2_t origin =
@@ -482,15 +488,15 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 
 	double RMx1y1 = cos(rot_delta);
 	double RMx1y2 = sin(rot_delta);
-	double RMx1y3 = 0;
+	double RMx1y3 = 0.0;
 
 	double RMx2y1 = -sin(rot_delta);
 	double RMx2y2 = cos(rot_delta);
-	double RMx2y3 = 0;
+	double RMx2y3 = 0.0;
 
-	double RMx3y1 = 0;
-	double RMx3y2 = 0;
-	double RMx3y3 = 1;
+	double RMx3y1 = 0.0;
+	double RMx3y2 = 0.0;
+	double RMx3y3 = 1.0;
 
 	// traslate to zero matrix: translates the origin to zero.
 
@@ -550,7 +556,7 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 		exit(-1);
 	}
 
-	return (plot_vec3_t){FTx1y1, TBx1y2, TBx1y3};
+	return (plot_vec3_t){FTx1y1, FTx1y2, FTx1y3};
 }
 
 plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
