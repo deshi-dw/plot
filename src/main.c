@@ -60,6 +60,11 @@ int main(void) {
 
 	double steer_x = 0.0;
 	double steer_y = 0.0;
+
+	int cam_off_x = 0;
+	int cam_off_y = 0;
+
+	int is_bot_following = 0;
 	while(! WindowShouldClose()) {
 		double sensetivity = 0.25;
 		double stop_speed  = 0.5;
@@ -94,23 +99,47 @@ int main(void) {
 			              : steer_y * stop_speed;
 		}
 
-		if(IsKeyDown(KEY_R)) {
-			bot = bot_init(0, 0, bot->axel_width, bot->wheel_diameter);
+		if(IsKeyReleased(KEY_R)) {
+			bot      = bot_init(0, 0, bot->axel_width, bot->wheel_diameter);
+			bot->rot = 0.0;
 		}
 
-		bot_arcade(-steer_x, steer_y, 1.0);
+		if(IsKeyPressed(KEY_F)) {
+			bot = bot_init(plot->paths[plot->sel].points[0].x,
+			               plot->paths[plot->sel].points[0].y, bot->axel_width,
+			               bot->wheel_diameter);
+			// TODO make bot initial rotation to be the start point angle + 90
+			// degrees (I think that's right)
+			bot->rot         = 0.0;
+			is_bot_following = 1;
+		}
+
+		if(IsKeyReleased(KEY_F)) {
+			is_bot_following = 0;
+		}
+
+		int cam_off_sen = 50;
+		if(IsKeyReleased(KEY_W)) {
+			cam_off_y += cam_off_sen;
+		}
+		else if(IsKeyReleased(KEY_S)) {
+			cam_off_y -= cam_off_sen;
+		}
+		if(IsKeyReleased(KEY_D)) {
+			cam_off_x += cam_off_sen;
+		}
+		else if(IsKeyPressed(KEY_A)) {
+			cam_off_x -= cam_off_sen;
+		}
+
+		if(! is_bot_following) {
+			bot_arcade(-steer_x, steer_y, 1.0);
+		}
 		bot_tick(GetFrameTime());
 
-		// cam.offset.x = bot->x;
-		// cam.offset.y = bot->y;
-		printf("bot(%.2f,%.2f  %.2f)  steer(%.2f,%.2f)  speed(%.2f,%.2f)  "
-		       "cam(%.2f,%.2f)   dt=%.2f\n",
-		       bot->x, bot->y, bot->rot, steer_x, steer_y, bot->speed_r,
-		       bot->speed_l, cam.offset.x, cam.offset.y, GetFrameTime());
-		printf("  pps(%.2f,%.2f) step=%.2f\n",
-		       (BOT_MAX_RPM / 60.0) * bot->speed_r * 128 * GetFrameTime(),
-		       (BOT_MAX_RPM / 60.0) * bot->speed_l * 128 * GetFrameTime(),
-		       M_PI * bot->wheel_diameter / 128);
+		// camera follows robot.
+		cam.offset.x = -bot->x + GetScreenWidth() / 2 - cam_off_x;
+		cam.offset.y = bot->y - GetScreenHeight() / 2 + cam_off_y;
 
 		mouse = GetScreenToWorld2D(GetMousePosition(), cam);
 
@@ -249,6 +278,46 @@ int main(void) {
 				DrawCircle(plot_x(start.x), plot_y(start.y), 3.0f, BLACK);
 				DrawCircle(plot_x(end.x), plot_y(end.y), 3.0f, BLACK);
 				DrawCircle(plot_x(mid.x), plot_y(mid.y), 3.0f, BLACK);
+
+				// TODO make the robot drive from the very start of the path to
+				// the end of the path.
+
+				// FIXME if add is too high, imediate crash. no idea why.
+				double add = 10;
+				double tx = cos(part.start_angle - add * TO_RAD) * part.radius +
+				            part.origin.x;
+				double ty = sin(part.start_angle - add * TO_RAD) * part.radius +
+				            part.origin.y;
+
+				DrawCircle(plot_x(tx), plot_y(ty), 6.0f, ORANGE);
+				DrawLine(plot_x(part.origin.x), plot_y(part.origin.y),
+				         plot_x(tx), plot_y(ty), ORANGE);
+
+				if(i == plot->sel && is_bot_following) {
+					// bad stuff, delete and replace
+					if(bot->rot == 0) {
+						bot->rot = part.start_angle + M_PI / 2;
+					}
+
+					double rot_delta = calc_rot_delta(
+					    bot->x, bot->y, tx, ty, part.origin.x, part.origin.y);
+
+					plot_vec2_t vels = calc_skid_velocities(
+					    part.origin, rot_delta, bot->axel_width, part.radius);
+
+					printf("ICC(%f,%f)  l=%f  r=%f  rd=%f  ", part.origin.x,
+					       part.origin.y, bot->axel_width, part.radius,
+					       rot_delta);
+					printf("target(%f,%f)  ", tx, ty);
+					printf("vels(%f,%f)", vels.x, vels.y);
+					puts("");
+
+					double mag = sqrt(vels.x * vels.x + vels.y * vels.y);
+					vels.x     = vels.x / mag;
+					vels.y     = vels.y / mag;
+
+					bot_tank(vels.x, vels.y);
+				}
 			}
 		}
 

@@ -153,6 +153,11 @@ double calc_quadrant(double angle, double x, double y);
 plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
                                 double count_l, double step, double width);
 
+double calc_rot_delta(double x, double y, double t_x, double t_y, double ICCx,
+                      double ICCy);
+double calc_x_of_sinx(double sinx);
+double calc_x_of_cosx(double cosx);
+
 plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
                                  double width, double radius);
 

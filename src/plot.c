@@ -536,8 +536,12 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 	double TBx1y3 = rot_delta;
 
 	// traslation calculation is (RM * TZ) + TB
-	// I really need to look into matrix with transforms because I don't really
+	// I really need to look into matrix transformations because I don't really
 	// have any idea why this equation works.
+
+	// What I THINK it does is place the robot at (0,0), apply the new rotation
+	// and then project the robot's position to a new position based on it's new
+	// rotation.
 
 	// final translation: the new position and rotation of our robot.
 	// multiply RM and TZ matrices.
@@ -557,6 +561,112 @@ plot_vec3_t calc_skid_transform(double x, double y, double rot, double count_r,
 	}
 
 	return (plot_vec3_t){FTx1y1, FTx1y2, FTx1y3};
+}
+
+// double calc_target(double x, double y, double ICCx, double ICCy) {}
+
+double calc_rot_delta(double x, double y, double t_x, double t_y, double ICCx,
+                      double ICCy) {
+	// We can calulate the sin(w) and cos(w) from a series of linear equations
+	// which we have from the calc_skid_transform function.
+
+	// x` = (x - ICCx)cos(w) - (y - ICCy)sin(w) + ICCx
+	// y` = (x - ICCx)sin(w) + (y - ICCy)cos(w) + ICCy
+	// where 	x`   = target position x		x = robot position x
+	//			y`   = target position y		y = robot position y
+	//			ICCx = circle origin x			w = rotation delta
+	//			ICCy = circle origin y
+
+	// To get from these equations to where we need was a nightmare that I don't
+	// want to put anyone else through so I will spare you the details. Here is
+	// the final equations:
+
+	// sin(w) = (x - ICCx)cos(w) + ICCx - x`
+	//			----------------------------
+	//			         y - ICCy
+	//
+	//          (x - ICCx)ICCx - (x - ICCx)x`     ICCy - y`
+	//			-----------------------------  -  ----------
+	//                 -(y - ICCy)^2               y - ICCy
+	// cos(w) = --------------------------------------------
+	//                       (x - ICCx)^2
+	//                       ------------  +  1
+	//                       (y - ICCy)^2
+
+	// I didn't try very hard to simplify this so I'm sure it can be done but it
+	// just wont be me who does it.
+
+	double cosw =
+	    (((x - ICCx) * ICCx - (x - ICCx) * t_x) / (-(y - ICCy) * (y - ICCy)) -
+	     (ICCy - t_y) / (y - ICCy)) /
+	    ((x - ICCx) * (x - ICCx) / ((y - ICCy) * (y - ICCy)) + 1);
+
+	double sinw = ((x - ICCx) * cosw + ICCx - t_x) / (y - ICCy);
+
+	double w_1 = calc_x_of_sinx(sinw);
+	double w_2 = calc_x_of_cosx(sinw);
+
+	// TODO remove this when calc_x_of_cosx can properly calculate negative x
+	// values.
+	if(w_1 < 0) {
+		w_2 *= -1;
+	}
+
+	return w_2;
+}
+
+double calc_x_of_sinx(double sinx) {
+	// Using sine estimation x estimation, and good ol' Newton's method, we can
+	// calculate x. Note that this works better for "small angles". We can
+	// estimate the value of x as sin(x) because they are roughly equal when
+	// small enough.
+
+	// We can then use the equation x_n+1 = f(x_n) / f`(x_n) which requires the
+	// "function derivative" or the rate of change of the function. This can be
+	// retrived by using a list of know rules.
+
+	// Our sine estimation equation is x - x^3 / 3! but can be rearanged to be
+	// -x^3 + 6x - 6sin(x) = 0
+
+	// our derivative is then 3 sin(x)^2 - 6
+	// found through https://www.rapidtables.com/math/calculus/derivative.html
+
+	// Plugging those functions into Newton's Method equation becomes
+	// x_n+1 = sin(x) - sin(x)^3 / ( 3sin(x)^2 - 6 )
+	// we use sin(x) here because for "small angles", it is a close estimation
+	// for x. https://brilliant.org/wiki/small-angle-approximation/
+
+	// the restrictions on x are  -1 <= x <= 1
+
+	// The accuracy of calc_x_of_sinx isn't as good as calc_x_of_cosx because we
+	// need to estimate x. For small x values this differnce is negligable but
+	// it becomes a problem near the upper and lower limits of -1 and 1.
+
+	return sinx - (sinx * sinx * sinx) / (3 * sinx * sinx - 6);
+}
+
+double calc_x_of_cosx(double cosx) {
+	// Getting x of cos(x) is worlds similer than sin(x) because it works with
+	// even exponents. To estimate cos(x) use the equation
+	// 1 - x^2 / 2 + x^4 / 4!
+	// which can be rearanged to
+	// x^4 - 12x^2 + 24 - 24cos(x) = 0
+	// which is a quadratic formula if u = x^2 and we write it as
+	// u^2 - 12u + 24 - 24cos(x)
+	// use the quadratic formula to solve, substitute back in x^2 and get
+	// -+ sqrt(6 - 2sqrt(3 + 6cos(x)))
+
+	// TODO make calc_x_of_cosx figure out the sign of x.
+	// In it's current incarnation, x will always be returned as positive. I
+	// don't yet have a way to fix this.
+
+	// the restrictions on x are  -1 <= x <= 1
+
+	// In terms of accuracy, calc_x_of_cosx always better because we don't need
+	// to estimate x. The only loss in accuracy comes from the cos() function
+	// estimation.
+
+	return sqrt(6 - 2 * sqrt(3 + 6 * cosx));
 }
 
 plot_vec2_t calc_skid_velocities(plot_vec2_t origin, double rot_delta,
