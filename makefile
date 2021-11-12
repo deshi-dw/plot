@@ -5,7 +5,7 @@ OUTPUT			= DEBUG
 PLATFORM		= WINDOWS
 CC 				= clang
 
-CFLAGS			= -Wall -pedantic -Wdocumentation -std=c11 -Iinclude
+CFLAGS			= -Wall -pedantic -Wdocumentation -std=c11 -Iinclude -v  -save-temps=obj
 LIBS 			=	-Llib						\
 					-lraylibdll					\
 					-lopengl32 					\
@@ -20,6 +20,7 @@ else
 endif
 
 SRC			   := $(wildcard src/*.c)
+SRC			   += $(wildcard src/ui/*.c)
 OBJ			   := $(patsubst src/%.c,obj/%.o,$(SRC))
 
 .PHONY: clean
@@ -35,7 +36,8 @@ $(NAME): $(OBJ)
 
 obj/%.o: src/%.c
 	-mkdir obj
+	-mkdir obj\ui
 	$(CC) $(CFLAGS) -DPLOT_VERSION_MAJOR=$(VERSION_MAJOR) -DPLOT_VERSION_MINOR=$(VERSION_MINOR) -D$(PLATFORM) -c $< -o $@
 
 clean:
-	-powershell -c 'rm obj/*; rm bin/*'
+	-powershell -c 'rm -recurse obj/*; rm bin/*'

@@ -1,13 +1,13 @@
 #ifndef UI_H
 #define UI_H
 
+// include once up here so we can get all of the internal includes included if
+// that makes sense.
+#include "ui.def"
+
 typedef struct ui_pos_t   ui_pos_t;
 typedef struct ui_rect_t  ui_rect_t;
 typedef struct ui_color_t ui_color_t;
-
-typedef struct ui_text_t    ui_text_t;
-typedef struct ui_textbox_t ui_textbox_t;
-typedef struct ui_btn_t     ui_btn_t;
 
 typedef struct ui_event_t ui_event_t;
 
@@ -31,26 +31,27 @@ struct ui_color_t {
 	int b;
 };
 
-struct ui_text_t {
-	ui_rect_t rect;
-	char*     text;
+enum ui_element_type_t {
+	UI_ELEMENT_NONE = 0,
+#define UI_ELEMENT(name, id, body, ...) id,
+#include "ui.def"
+#undef UI_ELEMENT
 };
 
-struct ui_btn_t {
-	ui_rect_t rect;
+#define UI_ELEMENT(name, id, body, ...) typedef struct name##_t name##_t;
+#include "ui.def"
+#undef UI_ELEMENT
 
-	void (*on_press)();
-
-	int   is_hover;
-	int   is_held;
-	char* text;
-};
+#define UI_ELEMENT(name, id, body, ...) struct name##_t body;
+#include "ui.def"
+#undef UI_ELEMENT
 
 enum ui_event_type_t {
 	// mouse button events
 	UI_EVENT_MOUSE_PRESS,
 	UI_EVENT_MOUSE_RELEASE,
 	UI_EVENT_MOUSE_HOLD,
+	UI_EVENT_MOUSE_DOUBLE_CLICK,
 
 	// mouse move events
 	UI_EVENT_MOUSE_MOVE,
@@ -59,87 +60,106 @@ enum ui_event_type_t {
 	UI_EVENT_KEY_PRESS,
 	UI_EVENT_KEY_RELEASE,
 	UI_EVENT_KEY_HOLD,
+};
 
-	// ui events
-	UI_EVENT_BTN_CLICK
+enum ui_ret_flags_t {
+	UI_RET_NONE      = 0,
+	UI_RET_REDRAW    = 1 << 1,
+	UI_RET_USE_EVENT = 1 << 2,
 };
 
 struct ui_event_t {
-	int type;
+	enum ui_event_type_t type;
 	union {
-		// mouse button events
-		struct ui_event_mouse_press_t {
+		struct ui_event_mouse_t {
 			int button;
-			int x;
-			int y;
-		} mouse_press;
-
-		struct ui_event_mouse_release_t {
-			int button;
-			int x;
-			int y;
-		} mouse_release;
-
-		struct ui_event_mouse_hold_t {
-			int button;
-			int x;
-			int y;
-		} mouse_hold;
-
-		// mouse move events
-		struct ui_event_mouse_move_t {
 			int x;
 			int y;
 			int delta_x;
 			int delta_y;
-		} mouse_move;
+		} mouse;
 
 		// keyboard events
-		struct ui_event_key_press_t {
+		struct ui_event_key_t {
 			int mod;
 			int key;
-		} key_press;
-
-		struct ui_event_key_release_t {
-			int mod;
-			int key;
-		} key_release;
-
-		struct ui_event_key_hold_t {
-			int mod;
-			int key;
-		} key_hold;
-
-		// ui events
-		struct ui_event_btn_click_t {
-			ui_btn_t* btn;
-		} btn_click;
-
-	} e;
+		} key;
+	};
 };
 
+// TODO implement
+struct ui_action_t {
+	void (*doit)();
+	void (*undo)();
+};
+
+typedef void (*ui_draw_func_t)(void* element);
+typedef int (*ui_event_func_t)(void* element, ui_event_t e);
+
 struct ui_t {
+	int width;
+	int height;
+
 	int mouse_x;
 	int mouse_y;
+	int mouse_last_x;
+	int mouse_last_y;
+
+	double mouse_release_time;
 
 	ui_color_t col_a;
 	ui_color_t col_p;
 	ui_color_t col_bg_s;
 	ui_color_t col_bg;
 
+#define UI_MAX_EVENTS 32
+	struct {
+		int        used;
+		ui_event_t e;
+	} events[UI_MAX_EVENTS];
+
+#define UI_MAX_ELEMENTS 256
+	struct {
+		void*           data;
+		int             dirty;
+		ui_draw_func_t  draw;
+		ui_event_func_t event;
+	} elements[UI_MAX_ELEMENTS];
+
 	char* font_path;
 	int   font_size;
 };
 
-int ui_init();
+extern ui_t ui;
+
+int ui_init(int width, int height);
+
+int ui_is_closed();
 
 int ui_tick();
 int ui_draw();
 
-int ui_text_tick(ui_text_t* text);
-int ui_text_draw(ui_text_t* text);
+int ui_add(enum ui_element_type_t type, void* element);
+int ui_del(void* element);
 
-int ui_btn_tick(ui_btn_t* btn);
-int ui_btn_draw(ui_btn_t* btn);
+int ui_collide_rect(int x, int y, ui_rect_t rect);
+int ui_collide_circle(int x, int y, int cx, int cy, int radius);
+
+int ui_load_font(char* font_path);
+
+void draw_stroke(ui_color_t color);
+void draw_fill(ui_color_t color);
+void draw_weight(int weight);
+
+void draw_text(char* text, ui_rect_t rect, int size);
+void draw_rect(ui_rect_t rect);
+void draw_circle(ui_pos_t pos, int radius);
+
+#define UI_ELEMENT(name, id, body, ...)          \
+	void name##_draw(void* data);                \
+	int  name##_event(void* data, ui_event_t e); \
+	int  name##_init(void* data);
+#include "ui.def"
+#undef UI_ELEMENT
 
 #endif

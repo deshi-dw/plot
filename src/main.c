@@ -17,13 +17,61 @@ struct {
 	int is_moving;
 } cursor = {0};
 
-int main(void) {
+void on_file() {
+	puts("file ->\n  save\n  load\n  prefrences\n  exit\n");
+}
+
+void on_edit() {
+	puts("edit ->\n  undo\n  redo\n  map settings\n");
+}
+
+void on_path() {
+	puts("path ->\n  new path\n  delete path\n  new point\n  delete point\n");
+}
+
+int main() {
+	plot_t* plot = plot_new(800, 450);
+
+	plot_path_add("my epic path");
+	plot_point_add(20.0, 20.0);
+	plot_point_add(490.0, 140.0);
+	plot_point_add(795.0, 300.0);
+
+	plot_point_add(400.0, 300.0);
+	plot_point_add(400.0, 400.0);
+	plot_point_add(500.0, 400.0);
+
+	ui_init(800, 450);
+
+	ui_btn_t menu_file = {{0, 0, 40, 11}, "File", on_file};
+	ui_btn_t menu_edit = {{40, 0, 40, 11}, "Edit", on_edit};
+	ui_btn_t menu_path = {{80, 0, 40, 11}, "Path", on_path};
+	ui_add(UI_ELEMENT_BTN, &menu_file);
+	ui_add(UI_ELEMENT_BTN, &menu_edit);
+	ui_add(UI_ELEMENT_BTN, &menu_path);
+
+	ui_plot_path_t path = {{100, 100, 0, 0}, &plot->paths[0]};
+	ui_add(UI_ELEMENT_PLOT_PATH, &path);
+
+	while(! ui_is_closed()) {
+		plot_path_calc();
+
+		ui_tick();
+		ui_draw();
+	}
+
+	return 0;
+}
+
+int main_old(void) {
 	const int screenWidth  = 800;
 	const int screenHeight = 450;
 
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-	InitWindow(screenWidth, screenHeight, "plot");
-	SetTargetFPS(30);
+	// SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
+	// InitWindow(screenWidth, screenHeight, "plot");
+	// SetTargetFPS(30);
+
+	ui_init(screenWidth, screenHeight);
 
 	plot_t* plot = plot_new(800, 450);
 	plot_path_add("new_path_1");
@@ -41,8 +89,6 @@ int main(void) {
 
 	Camera2D cam   = {(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f};
 	Vector2  mouse = {0};
-
-	ui_init();
 
 	ui_btn_t btn_file    = {0};
 	btn_file.rect.x      = 0;
@@ -179,14 +225,16 @@ int main(void) {
 		}
 
 		ui_tick();
-		ui_btn_tick(&btn_file);
-		ui_btn_tick(&btn_edit);
+		// ui_btn_tick(&btn_file);
+		// ui_btn_tick(&btn_edit);
 
 		BeginDrawing();
 		ClearBackground(WHITE);
 
-		ui_btn_draw(&btn_file);
-		ui_btn_draw(&btn_edit);
+		// ui_btn_draw(&btn_file);
+		// ui_btn_draw(&btn_edit);
+
+		ui_draw();
 
 		BeginMode2D(cam);
 
@@ -312,6 +360,9 @@ int main(void) {
 					printf("vels(%f,%f)", vels.x, vels.y);
 					puts("");
 
+					// TODO I'm normalizing the velocities here but I shouldn't
+					// have to. Look into why they come out to ridiculous values
+					// otherwise.
 					double mag = sqrt(vels.x * vels.x + vels.y * vels.y);
 					vels.x     = vels.x / mag;
 					vels.y     = vels.y / mag;

@@ -38,9 +38,15 @@ struct plot_path_part_t {
 
 struct plot_path_t {
 	plot_vec2_t* points;
-	plot_vec2_t* radii; // radii is the plural of radius by the way.
-	int          point_count;
-	int          size;
+	// TODO get rid of radii because it isn't used which is unfortunate because
+	// I like thinking I'm better than people because I know that the plural of
+	// radius is radii. Oh well... I'll keep it in a bit longer.
+	plot_vec2_t* radii; // radii is the plural of radius. it looks kind of dumb
+	                    // so I'm using it.
+
+	plot_path_part_t* parts;
+	int               point_count;
+	int               size;
 };
 
 struct plotbot_t {
@@ -76,6 +82,8 @@ int     plot_load_img(char* path_name);
 int plot_path_add(char* name);
 int plot_path_del(char* name);
 int plot_path_sel(char* name);
+
+int plot_path_calc();
 
 int plot_point_add(double x, double y);
 int plot_point_del(int index);

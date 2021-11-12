@@ -49,6 +49,8 @@ int plot_path_add(char* name) {
 		plot.paths[i].size   = 4;
 		plot.paths[i].points = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
 		plot.paths[i].radii  = malloc(sizeof(plot_vec2_t) * plot.paths[i].size);
+		plot.paths[i].parts =
+		    calloc(sizeof(plot_path_part_t), plot.paths[i].size);
 
 		return 0;
 	}
@@ -87,6 +89,55 @@ int plot_path_sel(char* name) {
 	return -1;
 }
 
+int plot_path_calc() {
+	for(int i = 0; i < plot.paths[plot.sel].point_count; i += 2) {
+		if(i + 3 > plot.paths[plot.sel].point_count) {
+			break;
+		}
+
+		// FIXME if start == end, mid will go delete itself.
+		plot_vec2_t start = plot.paths[plot.sel].points[i];
+		plot_vec2_t mid   = plot.paths[plot.sel].points[i + 1];
+		plot_vec2_t end   = plot.paths[plot.sel].points[i + 2];
+
+		double r = calc_dist(start, end) / 2;
+
+		double           real_radius = 0.0;
+		plot_path_part_t part;
+
+		// do initial part calculation with baseline radius.
+		part        = calc_path_part(start, mid, end, r);
+		real_radius = calc_circ_radius(start, end, part.mid);
+
+		// calculate part again but this time with a "real radius".
+		if(real_radius != NAN && real_radius != INFINITY) {
+			// roud real radius to get rid of small rounding errors that
+			// mess up calc_circ_center.
+
+			// calc_circ_center uses the square root of radius^2 -
+			// calc_dist(start, end)^2 amoung some other calculations to
+			// figure out the origin. if the radius isn't greater than
+			// or equal to the calc_dist, we get a NAN output which
+			// breaks everything.
+
+			// for example my radius was 299.99999999999994 when it was
+			// supposed to be 300 and that was enough to break it. 1
+			// million point precision should be good enough for
+			// literally everything short of rocketship code so I think
+			// we're fine.
+			real_radius = round(real_radius * 1000000.0) / 1000000.0;
+			// real_radius = r + 100;
+			part = calc_path_part(start, part.mid, end, real_radius);
+		}
+
+		plot.paths[plot.sel].points[i + 1] = part.mid;
+
+		plot.paths[plot.sel].parts[i / 2] = part;
+	}
+
+	return 0;
+}
+
 static void* plot_buffer_resize(void* buf, int size, int new_size) {
 	void* temp = malloc(size);
 
@@ -122,6 +173,12 @@ int plot_point_add(double x, double y) {
 		    plot_buffer_resize(plot.paths[plot.sel].radii,
 		                       plot.paths[plot.sel].size * sizeof(plot_vec2_t),
 		                       new_size * sizeof(plot_vec2_t) / 2);
+
+		// resize the parts buffer to be half of the size of the points buffer.
+		plot.paths[plot.sel].parts = plot_buffer_resize(
+		    plot.paths[plot.sel].parts,
+		    plot.paths[plot.sel].size * sizeof(plot_path_part_t),
+		    new_size * sizeof(plot_path_part_t) / 2);
 
 		plot.paths[plot.sel].size = new_size;
 	}
