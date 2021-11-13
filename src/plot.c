@@ -1,15 +1,16 @@
 #include "plot.h"
 
-#include <corecrt_malloc.h>
-#include <corecrt_math.h>
-#include <corecrt_memcpy_s.h>
+// #include <corecrt_malloc.h>
+
+// #include <corecrt_memcpy_s.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
-#include <corecrt_math_defines.h>
 
-static plot_t plot = {0};
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+plot_t plot = {0};
 
 // Hash function from http://www.cse.yorku.ca/~oz/hash.html
 static unsigned long hash(char* str) {

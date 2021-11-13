@@ -40,7 +40,7 @@ int ui_init(int width, int height) {
 	ui.width  = width;
 	ui.height = height;
 
-	// SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
+	SetConfigFlags(FLAG_VSYNC_HINT);
 	InitWindow(width, width, "plot");
 	SetTargetFPS(30);
 
@@ -126,7 +126,7 @@ int ui_tick() {
 	double time = GetTime();
 
 	if(ui_mb_release() != -1) {
-		if(time - ui.mouse_release_time < 0.8) {
+		if(time - ui.mouse_release_time < 0.15) {
 			ui.events[i].e.type = UI_EVENT_MOUSE_DOUBLE_CLICK;
 
 			ui.events[i].e.mouse.button = ui_mb_release();
@@ -167,7 +167,17 @@ int ui_tick() {
 	if(ui.mouse_x != ui.mouse_last_x || ui.mouse_y != ui.mouse_last_y) {
 		ui.events[i].e.type = UI_EVENT_MOUSE_MOVE;
 
-		ui.events[i].e.mouse.button = 0;
+		ui.events[i].e.mouse.button = -1;
+		UPDATE_MOUSE(i)
+
+		i++;
+	}
+
+	if(GetMouseWheelMove() != 0.0f) {
+		ui.events[i].e.type = UI_EVENT_MOUSE_WHEEL;
+
+		ui.events[i].e.mouse.button = -1;
+		ui.events[i].e.mouse.wheel  = GetMouseWheelMove();
 		UPDATE_MOUSE(i)
 
 		i++;
@@ -212,6 +222,7 @@ int ui_tick() {
 
 int ui_draw() {
 	// draw all elements.
+	ui.is_drawing = 1;
 	BeginDrawing();
 
 	// TODO reimplement ui.elements[i].dirty check but better. Maybe with
@@ -219,22 +230,25 @@ int ui_draw() {
 	ClearBackground(WHITE);
 
 	for(int i = 0; i < UI_MAX_ELEMENTS; i++) {
-		// if(ui.elements[i].data == NULL || ! ui.elements[i].dirty) {
-		// 	continue;
-		// }
+		if(ui.elements[i].data == NULL || ! ui.elements[i].dirty) {
+			continue;
+		}
 
 		if(ui.elements[i].draw != NULL) {
 			ui.elements[i].draw(ui.elements[i].data);
+			draw_reset();
 		}
 	}
 
 	EndDrawing();
 
+	ui.is_drawing = 0;
+
 	return 0;
 }
 
 int ui_add(enum ui_element_type_t type, void* element) {
-	for(int i = 0; i < UI_MAX_ELEMENTS; i++) {
+	for(int i = UI_MAX_ELEMENTS - 1; i >= 0; i--) {
 		if(ui.elements[i].data != NULL) {
 			continue;
 		}
@@ -244,6 +258,7 @@ int ui_add(enum ui_element_type_t type, void* element) {
 	case id:                                 \
 		ui.elements[i].draw  = name##_draw;  \
 		ui.elements[i].event = name##_event; \
+		name##_init(element);                \
 		break;
 #include "ui.def"
 #undef UI_ELEMENT
@@ -251,10 +266,6 @@ int ui_add(enum ui_element_type_t type, void* element) {
 			default:
 				return -1;
 		}
-
-#define UI_ELEMENT(name, id, body, ...) name##_init(element);
-#include "ui.def"
-#undef UI_ELEMENT
 
 		ui.elements[i].data  = element;
 		ui.elements[i].dirty = 1;

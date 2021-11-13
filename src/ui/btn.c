@@ -26,7 +26,6 @@ void ui_btn_draw(void* data) {
 	draw_text(btn->text, btn->rect, ui.font_size);
 }
 
-// FIXME application crashes when button is pushed ????
 int ui_btn_event(void* data, ui_event_t e) {
 	ui_btn_t* btn = data;
 

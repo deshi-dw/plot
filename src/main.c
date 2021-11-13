@@ -1,10 +1,9 @@
-#include <corecrt_math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#define _USE_MATH_DEFINES
 #include <math.h>
-#include <corecrt_math_defines.h>
 
 #include "raylib.h"
 
@@ -30,16 +29,16 @@ void on_path() {
 }
 
 int main() {
-	plot_t* plot = plot_new(800, 450);
+	plot_new(800, 450);
 
 	plot_path_add("my epic path");
-	plot_point_add(20.0, 20.0);
-	plot_point_add(490.0, 140.0);
-	plot_point_add(795.0, 300.0);
+	// plot_point_add(20.0, 20.0);
+	// plot_point_add(490.0, 140.0);
+	// plot_point_add(795.0, 300.0);
 
-	plot_point_add(400.0, 300.0);
-	plot_point_add(400.0, 400.0);
-	plot_point_add(500.0, 400.0);
+	// plot_point_add(400.0, 300.0);
+	// plot_point_add(400.0, 400.0);
+	// plot_point_add(500.0, 400.0);
 
 	ui_init(800, 450);
 
@@ -50,12 +49,13 @@ int main() {
 	ui_add(UI_ELEMENT_BTN, &menu_edit);
 	ui_add(UI_ELEMENT_BTN, &menu_path);
 
-	ui_plot_path_t path = {{100, 100, 0, 0}, &plot->paths[0]};
-	ui_add(UI_ELEMENT_PLOT_PATH, &path);
+	ui_plot_path_t path = {{100, 100, 0, 0}, &plot.paths[0]};
+	ui_plot_map_t  map  = {{0, 0, 0, 0}, &plot};
+	// ui_add(UI_ELEMENT_PLOT_PATH, &path);
+	ui_add(UI_ELEMENT_PLOT_MAP, &map);
 
+	plot_path_calc();
 	while(! ui_is_closed()) {
-		plot_path_calc();
-
 		ui_tick();
 		ui_draw();
 	}

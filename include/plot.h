@@ -76,6 +76,8 @@ struct plot_t {
 	int sel;
 };
 
+extern plot_t plot;
+
 plot_t* plot_new(double width, double height);
 int     plot_load_img(char* path_name);
 

@@ -1,7 +1,7 @@
 #include "bot.h"
 
-#include <corecrt_math.h>
-#include <corecrt_math_defines.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include "plot.h"
 

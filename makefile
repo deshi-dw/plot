@@ -5,7 +5,10 @@ OUTPUT			= DEBUG
 PLATFORM		= WINDOWS
 CC 				= clang
 
-CFLAGS			= -Wall -pedantic -Wdocumentation -std=c11 -Iinclude -v  -save-temps=obj
+CFLAGS			= -Wall -pedantic -Wdocumentation -std=c11 -Iinclude
+CFLAGS		   += -target x86_64-pc-windows-msvc
+# CFLAGS 		   += -target x86_64-pc-windows-gnu
+
 LIBS 			=	-Llib						\
 					-lraylibdll					\
 					-lopengl32 					\
@@ -13,7 +16,8 @@ LIBS 			=	-Llib						\
 					-lwinmm
 
 ifeq ($(OUTPUT), DEBUG)
-	CFLAGS += -g -O0 -v
+	CFLAGS += -g -O0 -v -save-temps=obj
+# CFLAGS += -fsanitize=address
 #	CFLAGS += -DDEBUG_TIME
 else
 	CFLAGS += -Wl,--subsystem,windows

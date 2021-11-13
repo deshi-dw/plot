@@ -54,4 +54,17 @@ UI_ELEMENT(ui_plot_path, UI_ELEMENT_PLOT_PATH, {
 	int is_selected;
 })
 
+UI_ELEMENT(ui_plot_map, UI_ELEMENT_PLOT_MAP, {
+	ui_rect_t rect;
+	plot_t* plot;
+
+	ui_plot_path_t ui_paths[PLOT_MAX_PATHS];
+
+	char position_text[32];
+	int position_x;
+	int position_y;
+
+	float zoom;
+})
+
 #undef UI_ELEMENT

@@ -53,6 +53,9 @@ enum ui_event_type_t {
 	UI_EVENT_MOUSE_HOLD,
 	UI_EVENT_MOUSE_DOUBLE_CLICK,
 
+	// mouse wheel events
+	UI_EVENT_MOUSE_WHEEL,
+
 	// mouse move events
 	UI_EVENT_MOUSE_MOVE,
 
@@ -72,11 +75,12 @@ struct ui_event_t {
 	enum ui_event_type_t type;
 	union {
 		struct ui_event_mouse_t {
-			int button;
-			int x;
-			int y;
-			int delta_x;
-			int delta_y;
+			int   button;
+			float wheel;
+			int   x;
+			int   y;
+			int   delta_x;
+			int   delta_y;
 		} mouse;
 
 		// keyboard events
@@ -100,10 +104,11 @@ struct ui_t {
 	int width;
 	int height;
 
-	int mouse_x;
-	int mouse_y;
-	int mouse_last_x;
-	int mouse_last_y;
+	int   mouse_x;
+	int   mouse_y;
+	int   mouse_last_x;
+	int   mouse_last_y;
+	float mwheel;
 
 	double mouse_release_time;
 
@@ -128,6 +133,8 @@ struct ui_t {
 
 	char* font_path;
 	int   font_size;
+
+	int is_drawing;
 };
 
 extern ui_t ui;
@@ -151,9 +158,18 @@ void draw_stroke(ui_color_t color);
 void draw_fill(ui_color_t color);
 void draw_weight(int weight);
 
+void draw_transform_mode(int is_absolute);
+void draw_translate(int x, int y);
+void draw_rotate(float rot);
+void draw_scale(float scale);
+void draw_reset();
+
+ui_pos_t draw_screen_to_world(int x, int y);
+ui_pos_t draw_world_to_point(int x, int y);
+
 void draw_text(char* text, ui_rect_t rect, int size);
 void draw_rect(ui_rect_t rect);
-void draw_circle(ui_pos_t pos, int radius);
+void draw_circle(int x, int y, int radius);
 
 #define UI_ELEMENT(name, id, body, ...)          \
 	void name##_draw(void* data);                \
