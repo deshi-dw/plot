@@ -174,7 +174,8 @@ void draw_circle(int x, int y, int radius);
 #define UI_ELEMENT(name, id, body, ...)          \
 	void name##_draw(void* data);                \
 	int  name##_event(void* data, ui_event_t e); \
-	int  name##_init(void* data);
+	int  name##_init(void* data);                \
+	__VA_ARGS__
 #include "ui.def"
 #undef UI_ELEMENT
 

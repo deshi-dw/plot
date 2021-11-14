@@ -24,17 +24,18 @@ UI_ELEMENT(ui_btn, UI_ELEMENT_BTN, {
 	int is_held;
 })
 
-// UI_ELEMENT(
-//     ui_btn_list, UI_ELEMENT_BTN_LIST,
-//     {
-// 	    ui_rect_t rect;
+UI_ELEMENT(
+    ui_menu, UI_ELEMENT_MENU,
+    {
+	    ui_rect_t rect;
+		int btn_height;
+		int size;
 
-// 	    int       btn_count;
-// 	    ui_btn_t* btns;
-
-// 	    int show;
-//     },
-//     void ui_btn_list_add(ui_btn_list_t* list, ui_btn_t* btn);)
+		int btn_count;
+	    ui_btn_t** btns;
+	    
+		int show;
+    }, void ui_menu_add(ui_menu_t* menu, ui_btn_t* btn);)
 
 // UI_ELEMENT(ui_renamable_btn, UI_ELEMENT_RENAMABLE_BTN, {
 // 	ui_btn_t     btn;

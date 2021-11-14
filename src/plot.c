@@ -6,9 +6,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <vcruntime_string.h>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+
+#include "cJSON.h"
 
 plot_t plot = {0};
 
@@ -250,11 +253,182 @@ int plot_point_set_radius(int index, double x, double y) {
 	return 0;
 }
 
-int plot_export(char* buffer, int buffer_size) {
-	return -1;
+int plot_export(char** buffer, int buffer_size) {
+	cJSON* paths = cJSON_CreateArray();
+
+	for(int i = 0; i < PLOT_MAX_PATHS; i++) {
+		if(plot.paths[i].points == NULL) {
+			continue;
+		}
+
+		cJSON* path = cJSON_CreateObject();
+		cJSON_AddNumberToObject(path, "point_count", plot.paths[i].point_count);
+
+		cJSON* points = cJSON_CreateArray();
+		cJSON* parts  = cJSON_CreateArray();
+		for(int j = 0; j < plot.paths[i].point_count; j++) {
+			cJSON* point = cJSON_CreateObject();
+			cJSON_AddNumberToObject(point, "x", plot.paths[i].points[j].x);
+			cJSON_AddNumberToObject(point, "y", plot.paths[i].points[j].y);
+
+			cJSON_AddItemToArray(points, point);
+
+			if(j % 2 == 0) {
+				cJSON* part = cJSON_CreateObject();
+
+				// parse parts start point
+				cJSON* start = cJSON_CreateObject();
+				cJSON_AddNumberToObject(start, "x",
+				                        plot.paths[i].parts[j / 2].start.x);
+				cJSON_AddNumberToObject(start, "y",
+				                        plot.paths[i].parts[j / 2].start.y);
+
+				// parse parts middle point
+				cJSON* mid = cJSON_CreateObject();
+				cJSON_AddNumberToObject(mid, "x",
+				                        plot.paths[i].parts[j / 2].mid.x);
+				cJSON_AddNumberToObject(mid, "y",
+				                        plot.paths[i].parts[j / 2].mid.y);
+
+				// parse parts end point
+				cJSON* end = cJSON_CreateObject();
+				cJSON_AddNumberToObject(end, "x",
+				                        plot.paths[i].parts[j / 2].end.x);
+				cJSON_AddNumberToObject(end, "y",
+				                        plot.paths[i].parts[j / 2].end.y);
+
+				// parse parts origin point
+				cJSON* origin = cJSON_CreateObject();
+				cJSON_AddNumberToObject(origin, "x",
+				                        plot.paths[i].parts[j / 2].origin.x);
+				cJSON_AddNumberToObject(origin, "y",
+				                        plot.paths[i].parts[j / 2].origin.y);
+
+				cJSON_AddItemToObject(part, "start", start);
+				cJSON_AddItemToObject(part, "mid", mid);
+				cJSON_AddItemToObject(part, "end", end);
+
+				cJSON_AddItemToObject(part, "origin", origin);
+
+				// parse part radius
+				cJSON_AddNumberToObject(part, "radius",
+				                        plot.paths[i].parts[j / 2].radius);
+
+				// parse part angles.
+				cJSON_AddNumberToObject(part, "start_angle",
+				                        plot.paths[i].parts[j / 2].start_angle);
+				cJSON_AddNumberToObject(part, "end_angle",
+				                        plot.paths[i].parts[j / 2].end_angle);
+				cJSON_AddNumberToObject(part, "delta_angle",
+				                        plot.paths[i].parts[j / 2].delta_angle);
+				cJSON_AddItemToArray(parts, part);
+			}
+		}
+
+		cJSON_AddItemToObject(path, "points", points);
+		cJSON_AddItemToObject(path, "parts", parts);
+		cJSON_AddItemToArray(paths, path);
+	}
+
+	char* temp = cJSON_PrintBuffered(paths, buffer_size, 0);
+	*buffer    = temp;
+	return strlen(temp);
 }
-int plot_import(char* buffer, int buffer_size) {
-	return -1;
+int plot_import(char** buffer, int buffer_size) {
+	cJSON* paths = cJSON_Parse(*buffer);
+
+	if(! (paths->type & cJSON_Array)) {
+		return -1;
+	}
+
+	int path_count = cJSON_GetArraySize(paths);
+
+	for(int i = 0; i < path_count; i++) {
+		cJSON* path = cJSON_GetArrayItem(paths, i);
+
+		// get point count.
+		plot.paths[i].point_count =
+		    cJSON_GetObjectItem(path, "point_count")->valueint;
+
+		// reallocate points array.
+		if(plot.paths[i].points != NULL) {
+			free(plot.paths[i].points);
+		}
+		plot.paths[i].points =
+		    calloc(sizeof(plot_vec2_t), plot.paths[i].point_count);
+
+		// get json point array.
+		cJSON* points = cJSON_GetObjectItem(path, "points");
+
+		// get json parts array.
+		cJSON* parts = cJSON_GetObjectItem(path, "parts");
+
+		for(int j = 0; j < plot.paths[i].point_count; j++) {
+			// get point values.
+			cJSON* point = cJSON_GetArrayItem(points, j);
+			plot.paths[i].points[j].x =
+			    cJSON_GetObjectItem(point, "x")->valuedouble;
+			plot.paths[i].points[j].y =
+			    cJSON_GetObjectItem(point, "y")->valuedouble;
+
+			// get part values.
+			if(j % 2 == 0) {
+				cJSON* part = cJSON_GetArrayItem(parts, j / 2);
+
+				// get start point.
+				plot.paths[i].parts[j / 2].start.x =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "start"), "x")
+				        ->valuedouble;
+				plot.paths[i].parts[j / 2].start.y =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "start"), "y")
+				        ->valuedouble;
+
+				// get mid point.
+				plot.paths[i].parts[j / 2].mid.x =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "mid"), "x")
+				        ->valuedouble;
+				plot.paths[i].parts[j / 2].mid.y =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "mid"), "y")
+				        ->valuedouble;
+
+				// get end point.
+				plot.paths[i].parts[j / 2].end.x =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "end"), "x")
+				        ->valuedouble;
+				plot.paths[i].parts[j / 2].end.y =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "end"), "y")
+				        ->valuedouble;
+
+				// get origin point.
+				plot.paths[i].parts[j / 2].origin.x =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "origin"),
+				                        "x")
+				        ->valuedouble;
+				plot.paths[i].parts[j / 2].origin.y =
+				    cJSON_GetObjectItem(cJSON_GetObjectItem(part, "origin"),
+				                        "y")
+				        ->valuedouble;
+
+				// get radius.
+				plot.paths[i].parts[j / 2].radius =
+				    cJSON_GetObjectItem(part, "radius")->valuedouble;
+
+				// get start angle.
+				plot.paths[i].parts[j / 2].start_angle =
+				    cJSON_GetObjectItem(part, "start_angle")->valuedouble;
+
+				// get end angle.
+				plot.paths[i].parts[j / 2].end_angle =
+				    cJSON_GetObjectItem(part, "end_angle")->valuedouble;
+
+				// get delta angle.
+				plot.paths[i].parts[j / 2].delta_angle =
+				    cJSON_GetObjectItem(part, "delta_angle")->valuedouble;
+			}
+		}
+	}
+
+	return 0;
 }
 
 double plot_width() {

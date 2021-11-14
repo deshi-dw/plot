@@ -126,6 +126,8 @@ int ui_tick() {
 	double time = GetTime();
 
 	if(ui_mb_release() != -1) {
+		// TODO increase double click time and check that mouse move delta isn't
+		// too big.
 		if(time - ui.mouse_release_time < 0.15) {
 			ui.events[i].e.type = UI_EVENT_MOUSE_DOUBLE_CLICK;
 

@@ -16,8 +16,42 @@ struct {
 	int is_moving;
 } cursor = {0};
 
+ui_menu_t menu_file;
+
 void on_file() {
+	menu_file.show = ! menu_file.show;
 	puts("file ->\n  save\n  load\n  prefrences\n  exit\n");
+}
+
+void on_save() {
+	char* export_data;
+	int   size = plot_export(&export_data, 1024);
+
+	FILE* file = fopen("data.json", "w");
+	fwrite(export_data, sizeof(char), size, file);
+	fclose(file);
+}
+
+void on_load() {
+	char* import_data;
+	int   size = 0;
+
+	FILE* file = fopen("data.json", "r");
+
+	fseek(file, 0, SEEK_END);
+	size = ftell(file);
+	rewind(file);
+
+	import_data = malloc(size);
+
+	fread(import_data, sizeof(char), size, file);
+	fclose(file);
+
+	plot_import(&import_data, size);
+	free(import_data);
+}
+
+void on_preferences() {
 }
 
 void on_edit() {
@@ -42,16 +76,26 @@ int main() {
 
 	ui_init(800, 450);
 
-	ui_btn_t menu_file = {{0, 0, 40, 11}, "File", on_file};
+	ui_btn_t menu_btn_file = {{0, 0, 40, 11}, "File", on_file};
+	ui_btn_t btn_test1     = {{0}, "save", on_save};
+	ui_btn_t btn_test2     = {{0}, "load", on_load};
+	ui_btn_t btn_test3     = {{0}, "preferences", on_preferences};
+
+	menu_file = (ui_menu_t){{0, 11, 100, 0}, 11, 4};
+	ui_menu_add(&menu_file, &btn_test1);
+	ui_menu_add(&menu_file, &btn_test2);
+	ui_menu_add(&menu_file, &btn_test3);
+
+	ui_add(UI_ELEMENT_BTN, &menu_btn_file);
+	ui_add(UI_ELEMENT_MENU, &menu_file);
+
 	ui_btn_t menu_edit = {{40, 0, 40, 11}, "Edit", on_edit};
 	ui_btn_t menu_path = {{80, 0, 40, 11}, "Path", on_path};
-	ui_add(UI_ELEMENT_BTN, &menu_file);
+
 	ui_add(UI_ELEMENT_BTN, &menu_edit);
 	ui_add(UI_ELEMENT_BTN, &menu_path);
 
-	ui_plot_path_t path = {{100, 100, 0, 0}, &plot.paths[0]};
-	ui_plot_map_t  map  = {{0, 0, 0, 0}, &plot};
-	// ui_add(UI_ELEMENT_PLOT_PATH, &path);
+	ui_plot_map_t map = {{0, 0, 0, 0}, &plot};
 	ui_add(UI_ELEMENT_PLOT_MAP, &map);
 
 	plot_path_calc();

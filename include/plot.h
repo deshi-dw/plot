@@ -93,8 +93,8 @@ int plot_point_get_index(double x, double y, double radius);
 int plot_point_set(int index, double x, double y);
 int plot_point_set_radius(int index, double x, double y);
 
-int plot_export(char* buffer, int buffer_size);
-int plot_import(char* buffer, int buffer_size);
+int plot_export(char** buffer, int buffer_size);
+int plot_import(char** buffer, int buffer_size);
 
 double plot_width();
 double plot_height();
